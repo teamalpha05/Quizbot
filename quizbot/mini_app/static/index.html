@@ -603,6 +603,352 @@
     .quiz-title { font-size: 25px; }
     .q-text { font-size: 19px; }
   }
+
+  /* =========================================================
+     Quick Study Group - Mobile Quiz UI
+     Visual-only redesign + client-side navigation state.
+     Existing API/quiz rendering remains intact.
+     ========================================================= */
+  :root {
+    --qsg-blue: #234d9b;
+    --qsg-blue-dark: #183b7c;
+    --qsg-purple: #a843dc;
+    --qsg-green: #16a85b;
+    --qsg-orange: #f59e0b;
+    --qsg-info: #2f80ed;
+    --qsg-card: #ffffff;
+    --qsg-page: #f1f5fb;
+  }
+
+  html, body { background: var(--qsg-page); }
+  #app {
+    max-width: 760px;
+    padding: 0;
+    width: 100%;
+  }
+  #view-start, #view-results { padding: 16px; }
+  #view-play {
+    min-height: 100vh;
+    background: var(--qsg-page);
+  }
+
+  /* Start screen */
+  .start-wrap { padding: 16px; }
+  .start-wrap .masthead {
+    margin: 0 0 14px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--qsg-blue), #315eaf);
+    color: #fff;
+  }
+  .start-wrap .masthead-title,
+  .start-wrap .masthead-sub { color: #fff; }
+  .start-wrap .masthead-sub { opacity: .82; }
+  .start-wrap .quiz-title {
+    font-size: 24px;
+    line-height: 1.25;
+    margin: 10px 2px 14px;
+  }
+  .start-wrap .section-label {
+    margin: 18px 2px 8px;
+    color: var(--tg-hint);
+    font-size: 12px;
+  }
+  .start-wrap .mode-choice { gap: 10px; }
+  .start-wrap .mode-card {
+    border-radius: 16px;
+    padding: 16px 14px;
+    min-height: 100px;
+    background: var(--tg-bg);
+    border: 2px solid var(--line);
+  }
+  .start-wrap .mode-card.selected {
+    border-color: var(--qsg-blue);
+    box-shadow: 0 5px 18px rgba(35,77,155,.14);
+  }
+  .start-wrap .mode-card .mt { font-size: 15px; }
+  .start-wrap .mode-card .md { font-size: 12px; line-height: 1.45; }
+  .start-wrap .primary-btn {
+    margin-top: 18px;
+    min-height: 52px;
+    border-radius: 14px;
+    background: var(--qsg-blue);
+    font-size: 16px;
+  }
+  .start-wrap .opt-group { margin-bottom: 4px; }
+
+  /* Top quiz bar */
+  .quiz-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 12px 14px;
+    min-height: 68px;
+    background: linear-gradient(135deg, var(--qsg-blue), #2d559f);
+    color: #fff;
+    box-shadow: 0 3px 12px rgba(20,45,95,.18);
+  }
+  .quiz-topbar .brand {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .quiz-topbar .top-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.10);
+    color: #fff;
+    font-size: 23px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .quiz-topbar .top-timer {
+    min-width: 102px;
+    padding: 7px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.28);
+    background: rgba(255,255,255,.12);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .quiz-topbar .top-timer .timer-icon { font-size: 14px; display:block; line-height:1; }
+  .quiz-topbar .top-timer .timer-value { font-size: 20px; font-weight: 800; line-height: 1.15; }
+  .quiz-topbar .top-timer .timer-track {
+    height: 3px;
+    margin-top: 4px;
+    background: rgba(255,255,255,.25);
+  }
+  .quiz-topbar .top-timer .timer-fill { background: #fff; }
+
+  /* Progress */
+  .play-header {
+    gap: 8px;
+    margin: 0;
+    padding: 12px 14px 8px;
+    background: var(--qsg-page);
+  }
+  .progress-top {
+    font-size: 13px;
+    color: var(--tg-hint);
+  }
+  .progress-bar-track { height: 7px; }
+  .dot-stepper { display: none; }
+
+  /* Question card - compact, no artificial empty flex area */
+  .q-card-outer { flex: 0 0 auto !important; padding: 0 14px 14px; }
+  .q-card {
+    background: var(--qsg-card);
+    border: 1px solid rgba(20,40,80,.08);
+    border-radius: 22px;
+    padding: 18px 16px 20px;
+    box-shadow: 0 4px 18px rgba(30,55,100,.07);
+  }
+  .q-num-tag {
+    color: var(--qsg-blue);
+    background: rgba(47,128,237,.10);
+    padding: 7px 12px;
+    border-radius: 999px;
+    text-transform: none;
+    font-size: 13px;
+  }
+  .q-text {
+    font-size: 20px;
+    line-height: 1.55;
+    font-weight: 700;
+    margin-top: 12px;
+    color: #18202e;
+  }
+  .q-card .reply-text {
+    border-left-color: var(--qsg-blue);
+    background: #f5f8fd;
+  }
+  .options { gap: 10px; margin-top: 16px; }
+  .option-btn {
+    min-height: 58px;
+    padding: 13px 14px;
+    border: 2px solid #dfe5ec;
+    border-radius: 16px;
+    background: #fff;
+    font-size: 16px;
+    line-height: 1.42;
+    align-items: center;
+  }
+  .option-letter {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 2px solid #d7dee8;
+    background: #fff;
+    color: #17202d;
+    font-size: 14px;
+  }
+  .option-btn.selected-pending {
+    border-color: var(--qsg-blue);
+    background: rgba(47,128,237,.07);
+  }
+  .option-btn.selected-pending .option-letter {
+    background: var(--qsg-blue);
+    border-color: var(--qsg-blue);
+  }
+
+  /* Fixed-looking action area without the giant blank gap */
+  .quiz-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 25;
+    padding: 8px 14px calc(10px + var(--safe-bottom));
+    background: color-mix(in srgb, var(--qsg-page) 94%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(20,40,80,.08);
+  }
+  .quiz-actions .action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+  .quiz-action-btn {
+    min-height: 50px;
+    border-radius: 14px;
+    border: 1px solid #d9e0e8;
+    background: #fff;
+    color: #101820;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 10px 8px;
+  }
+  .quiz-action-btn:disabled { opacity: .42; }
+  .quiz-action-btn.review {
+    color: #fff;
+    border-color: var(--qsg-orange);
+    background: var(--qsg-orange);
+  }
+  .quiz-action-btn.review.marked {
+    background: #f97316;
+  }
+  .quiz-action-btn.save {
+    color: #fff;
+    border-color: var(--qsg-green);
+    background: var(--qsg-green);
+  }
+  .quiz-action-btn.submit {
+    color: #fff;
+    border-color: #dc3545;
+    background: #dc3545;
+  }
+  .quiz-action-btn.clear {
+    background: #fff;
+  }
+  .quiz-action-btn.navigator {
+    background: #eef3fb;
+    color: var(--qsg-blue);
+    border-color: #d6e1f1;
+  }
+  .quiz-actions .action-row.secondary { margin-top: 8px; }
+
+  /* Navigator sheet */
+  .navigator-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(10,18,35,.48);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .navigator-sheet {
+    width: 100%;
+    max-width: 760px;
+    max-height: 78vh;
+    overflow: auto;
+    background: var(--tg-bg);
+    border-radius: 22px 22px 0 0;
+    padding: 16px 14px calc(20px + var(--safe-bottom));
+    box-shadow: 0 -10px 40px rgba(0,0,0,.18);
+  }
+  .navigator-head {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin-bottom: 12px;
+  }
+  .navigator-title { font-size: 18px; font-weight: 800; }
+  .navigator-close {
+    border:0; background:var(--tg-secondary-bg); color:var(--tg-text);
+    width:36px; height:36px; border-radius:50%; font-size:18px;
+  }
+  .navigator-legend {
+    display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;
+    font-size:11px; color:var(--tg-hint); font-weight:700;
+  }
+  .legend-dot { width:10px; height:10px; display:inline-block; border-radius:50%; margin-right:4px; vertical-align:-1px; }
+  .legend-green { background:var(--qsg-green); }
+  .legend-orange { background:var(--qsg-orange); }
+  .legend-blue { background:var(--qsg-info); }
+  .nav-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:9px; }
+  .nav-q {
+    min-height:44px; border-radius:12px; border:1px solid var(--line);
+    background:var(--tg-secondary-bg); color:var(--tg-text); font-weight:800;
+  }
+  .nav-q.answered { background:var(--qsg-green); color:#fff; border-color:var(--qsg-green); }
+  .nav-q.marked { background:var(--qsg-orange); color:#fff; border-color:var(--qsg-orange); }
+  .nav-q.unanswered { background:var(--qsg-info); color:#fff; border-color:var(--qsg-info); }
+  .nav-q.current { box-shadow:0 0 0 3px rgba(35,77,155,.18); }
+
+  /* Results */
+  #view-results { padding-bottom: 28px; }
+  .results-hero {
+    background: linear-gradient(135deg, var(--qsg-blue), #3568bb);
+    color:#fff; border-radius:22px; padding:20px 14px 18px;
+    margin-bottom:12px;
+  }
+  .results-hero .result-headline,
+  .results-hero .result-sub { color:#fff; }
+  .results-hero .result-sub { opacity:.86; }
+  .results-ring-wrap { margin-top:0; }
+  .ring-bg { stroke: rgba(255,255,255,.22); }
+  .result-headline { font-size:22px; }
+  .stat-grid { grid-template-columns:repeat(3,1fr); gap:8px; }
+  .stat-box { padding:13px 7px; border-radius:15px; }
+  .result-filter {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:7px;
+    margin:16px 0 12px;
+  }
+  .result-filter-btn {
+    border:1px solid var(--line); background:var(--tg-bg); color:var(--tg-text);
+    border-radius:12px; padding:10px 5px; font-size:11px; font-weight:800;
+  }
+  .result-filter-btn.active { background:var(--qsg-blue); color:#fff; border-color:var(--qsg-blue); }
+  .review-item { border-radius:17px; padding:14px; }
+  .result-review-question { margin-top:4px; }
+  .restart-btn {
+    width:100%; min-height:52px; margin-top:14px; border:0; border-radius:14px;
+    background:var(--qsg-blue); color:#fff; font-size:16px; font-weight:800;
+  }
+
+  /* Manual dark mode */
+  html[data-qsg-dark="1"] {
+    --qsg-page:#101521;
+    --qsg-card:#171d29;
+  }
+  html[data-qsg-dark="1"] .q-text { color:#f4f7fb; }
+  html[data-qsg-dark="1"] .option-btn,
+  html[data-qsg-dark="1"] .quiz-action-btn { background:#171d29; color:#f4f7fb; border-color:#303a4a; }
+  html[data-qsg-dark="1"] .option-letter { background:#171d29; color:#f4f7fb; border-color:#3a4658; }
+  html[data-qsg-dark="1"] .q-card .reply-text { background:#111824; }
+  html[data-qsg-dark="1"] .start-wrap .mode-card { background:#171d29; }
+  html[data-qsg-dark="1"] .quiz-actions { background:rgba(16,21,33,.94); }
+  html[data-qsg-dark="1"] .quiz-topbar { background:linear-gradient(135deg,#162f62,#214889); }
+  html[data-qsg-dark="1"] .nav-q { background:#202938; }
+
 </style>
 </head>
 <body>
@@ -623,6 +969,16 @@
   <div id="view-start" class="start-wrap hidden"></div>
 
   <div id="view-play" class="hidden" style="flex:1; display:flex; flex-direction:column;">
+    <div class="quiz-topbar">
+      <div class="brand" id="play-brand">📚 Quiz</div>
+      <button class="top-icon" id="theme-toggle" type="button" title="Dark mode">🌙</button>
+      <div class="top-timer" id="top-timer-box">
+        <span class="timer-icon">⏱️</span>
+        <span class="timer-value" id="timer-num">--:--</span>
+        <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
+      </div>
+      <button class="top-icon" id="top-menu" type="button" title="Question Navigator">☰</button>
+    </div>
     <div class="play-header">
       <div class="progress-top">
         <span id="progress-label">Question 1 of 10</span>
@@ -630,19 +986,29 @@
         <span class="score-live hidden" id="score-live"></span>
       </div>
       <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
-      <div class="dot-stepper" id="dot-stepper"></div>
-      <div class="timer-wrap" id="timer-wrap">
-        <div class="timer-track"><div class="timer-fill" id="timer-fill" style="width:100%"></div></div>
-        <div class="timer-num" id="timer-num">--</div>
-      </div>
     </div>
     <div class="q-card-outer">
       <div id="q-card-slot"></div>
+    </div>
+    <div class="quiz-actions" id="quiz-actions">
+      <div class="action-row">
+        <button class="quiz-action-btn" id="previous-btn" type="button">⬅️ Previous</button>
+        <button class="quiz-action-btn review" id="review-btn" type="button">🟠 Mark for Review</button>
+      </div>
+      <div class="action-row secondary">
+        <button class="quiz-action-btn clear" id="clear-btn" type="button">🧹 Clear Response</button>
+        <button class="quiz-action-btn save" id="save-btn" type="button">💾 Save &amp; Next ➡️</button>
+      </div>
+      <div class="action-row secondary">
+        <button class="quiz-action-btn navigator" id="navigator-btn" type="button">📋 Question Navigator</button>
+        <button class="quiz-action-btn submit" id="submit-btn" type="button">Submit</button>
+      </div>
     </div>
   </div>
 
   <div id="view-results" class="hidden"></div>
 </div>
+<div id="navigator-overlay" class="navigator-overlay hidden"></div>
 
 <script>
 (function () {
@@ -692,6 +1058,24 @@
   try {
     if (tg && tg.onEvent) tg.onEvent("themeChanged", applyTheme);
   } catch (e) { /* ignore */ }
+
+  function toggleQsgDark() {
+    var isDark = document.documentElement.getAttribute("data-qsg-dark") === "1";
+    if (isDark) {
+      document.documentElement.removeAttribute("data-qsg-dark");
+      try { localStorage.setItem("qsg-dark", "0"); } catch (e) {}
+      setText(qs("theme-toggle"), "🌙");
+    } else {
+      document.documentElement.setAttribute("data-qsg-dark", "1");
+      try { localStorage.setItem("qsg-dark", "1"); } catch (e) {}
+      setText(qs("theme-toggle"), "☀️");
+    }
+  }
+  try {
+    if (localStorage.getItem("qsg-dark") === "1") {
+      document.documentElement.setAttribute("data-qsg-dark", "1");
+    }
+  } catch (e) {}
 
   function mainButtonHide() {
     try { if (tg && tg.MainButton) tg.MainButton.hide(); } catch (e) {}
@@ -929,11 +1313,16 @@
     position: 0,
     liveScore: 0,
     dots: [],           // per-question status: "pending" | "correct" | "wrong" | "answered"
-    answers: {},         // position -> {selected:[...]}
+    answers: {},         // position -> {selected:[...], submitted:boolean}
+    answerResults: {},    // position -> practice feedback payload
+    marked: {},           // position -> true when marked for review
     timerHandle: null,
     timerRemaining: 0,
     questionLocked: false,
     currentQuestion: null,
+    submitting: false,
+    resultData: null,
+    resultFilter: "all",
     // Player-chosen start options (null = use quiz default)
     opt: {
       timer: null,
@@ -1240,14 +1629,11 @@
     var root = qs("view-start");
     root.innerHTML = "";
 
-    // -- Masthead --
     var mast = el("div", "masthead");
     var badge = el("div", "masthead-badge", "Q");
     var mastText = el("div");
-    var mastTitle = el("div", "masthead-title", "Quiz Player");
-    var mastSub = el("div", "masthead-sub", "Verified session · Encrypted transport");
-    mastText.appendChild(mastTitle);
-    mastText.appendChild(mastSub);
+    mastText.appendChild(el("div", "masthead-title", "Quick Study Group"));
+    mastText.appendChild(el("div", "masthead-sub", "Quiz Test Platform"));
     mast.appendChild(badge);
     mast.appendChild(mastText);
     root.appendChild(mast);
@@ -1258,59 +1644,55 @@
 
     var stats = el("div", "stat-row");
     var qCount = el("div", "stat-pill");
-    qCount.innerHTML = "❓ <b>" + state.total + "</b>&nbsp;questions";
+    qCount.innerHTML = "📚 <b>" + state.total + "</b>&nbsp; Questions";
     stats.appendChild(qCount);
     if (state.quizDefaultTimer > 0) {
       var tPill = el("div", "stat-pill");
-      tPill.innerHTML = "⏱️ <b>" + state.quizDefaultTimer + "s</b>&nbsp;default";
+      tPill.innerHTML = "⏱️ <b>" + state.quizDefaultTimer + "s</b>&nbsp; Default";
       stats.appendChild(tPill);
-    }
-    if (state.quizDefaultNegative > 0) {
-      var negPill = el("div", "stat-pill");
-      negPill.innerHTML = "⚠️ −" + state.quizDefaultNegative + " default";
-      stats.appendChild(negPill);
     }
     root.appendChild(stats);
 
-    // -- Mode choice --
-    root.appendChild(el("div", "section-label", "Mode"));
+    root.appendChild(el("div", "section-label", "Select Mode"));
     var modeChoice = el("div", "mode-choice");
     var practiceCard = el("div", "mode-card" + (state.mode === "practice" ? " selected" : ""));
-    practiceCard.innerHTML = '<div class="mi">🎯</div><div class="mt">Practice</div><div class="md">Instant answer + explanation after each question</div>';
+    practiceCard.innerHTML = '<div class="mi">🎯</div><div class="mt">Practice Mode</div><div class="md">हर प्रश्न के बाद तुरंत सही उत्तर और explanation मिलेगा।</div>';
     var examCard = el("div", "mode-card" + (state.mode === "exam" ? " selected" : ""));
-    examCard.innerHTML = '<div class="mi">📝</div><div class="mt">Exam</div><div class="md">Answers revealed only at the end, full review screen</div>';
+    examCard.innerHTML = '<div class="mi">📝</div><div class="mt">Exam Mode</div><div class="md">उत्तर अंत में दिखेंगे और पूरा result review किया जा सकेगा।</div>';
     practiceCard.addEventListener("click", function () {
       haptic("selection");
       state.mode = "practice";
       practiceCard.classList.add("selected");
       examCard.classList.remove("selected");
+      setText(startBtn, "Start Quiz");
     });
     examCard.addEventListener("click", function () {
       haptic("selection");
       state.mode = "exam";
       examCard.classList.add("selected");
       practiceCard.classList.remove("selected");
+      setText(startBtn, "Start Quiz");
     });
     modeChoice.appendChild(practiceCard);
     modeChoice.appendChild(examCard);
     root.appendChild(modeChoice);
 
-    // -- Options: timer per question --
-    root.appendChild(el("div", "section-label", "Timer per question"));
+    root.appendChild(el("div", "section-label", "Timer"));
     var timerGroup = el("div", "opt-group");
     var timerRow = el("div", "opt-row");
     var timerLabelWrap = el("div");
-    timerLabelWrap.appendChild(el("div", "opt-row-label", "Time limit"));
-    timerLabelWrap.appendChild(el("div", "opt-row-desc", state.quizDefaultTimer > 0 ? "Quiz default: " + state.quizDefaultTimer + "s" : "Quiz default: no limit"));
+    timerLabelWrap.appendChild(el("div", "opt-row-label", "Custom Timer"));
+    timerLabelWrap.appendChild(el("div", "opt-row-desc", state.quizDefaultTimer > 0
+      ? "Default: " + state.quizDefaultTimer + " seconds per question"
+      : "Set a time limit for each question"));
     timerRow.appendChild(timerLabelWrap);
 
     var timerSeg = el("div", "seg");
     var timerChoices = [
       { label: "Default", value: null },
-      { label: "None", value: 0 },
-      { label: "15s", value: 15 },
       { label: "30s", value: 30 },
       { label: "60s", value: 60 },
+      { label: "90s", value: 90 },
       { label: "Custom", value: "custom" }
     ];
     var timerCustomRow = el("div", "custom-input-row");
@@ -1318,10 +1700,10 @@
     timerCustomInput.type = "number";
     timerCustomInput.min = "1";
     timerCustomInput.max = "3600";
-    timerCustomInput.placeholder = "seconds";
-    timerCustomInput.value = "45";
+    timerCustomInput.placeholder = "Seconds";
+    timerCustomInput.value = "60";
     timerCustomRow.appendChild(timerCustomInput);
-    timerCustomRow.appendChild(el("span", "custom-input-suffix", "seconds per question"));
+    timerCustomRow.appendChild(el("span", "custom-input-suffix", "sec / question"));
 
     var timerBtns = [];
     timerChoices.forEach(function (choice) {
@@ -1333,7 +1715,7 @@
         btn.classList.add("active");
         if (choice.value === "custom") {
           timerCustomRow.classList.add("active");
-          state.opt.timer = Math.max(1, Math.min(3600, parseInt(timerCustomInput.value, 10) || 45));
+          state.opt.timer = Math.max(1, Math.min(3600, parseInt(timerCustomInput.value, 10) || 60));
         } else {
           timerCustomRow.classList.remove("active");
           state.opt.timer = choice.value;
@@ -1342,118 +1724,16 @@
       timerBtns.push(btn);
       timerSeg.appendChild(btn);
     });
-    timerBtns[0].classList.add("active"); // Default selected initially
+    timerBtns[0].classList.add("active");
     timerCustomInput.addEventListener("input", function () {
-      var v = Math.max(1, Math.min(3600, parseInt(timerCustomInput.value, 10) || 1));
-      state.opt.timer = v;
+      state.opt.timer = Math.max(1, Math.min(3600, parseInt(timerCustomInput.value, 10) || 1));
     });
     timerRow.appendChild(timerSeg);
     timerGroup.appendChild(timerRow);
     timerGroup.appendChild(timerCustomRow);
     root.appendChild(timerGroup);
 
-    // -- Options: negative marking --
-    root.appendChild(el("div", "section-label", "Negative marking"));
-    var negGroup = el("div", "opt-group");
-    var negRow = el("div", "opt-row");
-    var negLabelWrap = el("div");
-    negLabelWrap.appendChild(el("div", "opt-row-label", "Penalty for wrong answers"));
-    negLabelWrap.appendChild(el("div", "opt-row-desc", state.quizDefaultNegative > 0 ? "Quiz default: −" + state.quizDefaultNegative : "Quiz default: off"));
-    negRow.appendChild(negLabelWrap);
-
-    var negSeg = el("div", "seg");
-    var negChoices = [
-      { label: "Default", value: null },
-      { label: "Off", value: 0 },
-      { label: "Custom", value: "custom" }
-    ];
-    var negCustomRow = el("div", "custom-input-row");
-    var negCustomInput = document.createElement("input");
-    negCustomInput.type = "number";
-    negCustomInput.min = "0";
-    negCustomInput.max = "100";
-    negCustomInput.step = "0.25";
-    negCustomInput.placeholder = "e.g. 0.25";
-    negCustomInput.value = "0.25";
-    negCustomRow.appendChild(negCustomInput);
-    negCustomRow.appendChild(el("span", "custom-input-suffix", "points per wrong answer"));
-
-    var negBtns = [];
-    negChoices.forEach(function (choice) {
-      var btn = el("button", "seg-btn", choice.label);
-      btn.type = "button";
-      btn.addEventListener("click", function () {
-        haptic("selection");
-        negBtns.forEach(function (b) { b.classList.remove("active"); });
-        btn.classList.add("active");
-        if (choice.value === "custom") {
-          negCustomRow.classList.add("active");
-          state.opt.negativeMarks = Math.max(0, parseFloat(negCustomInput.value) || 0.25);
-        } else {
-          negCustomRow.classList.remove("active");
-          state.opt.negativeMarks = choice.value;
-        }
-      });
-      negBtns.push(btn);
-      negSeg.appendChild(btn);
-    });
-    negBtns[0].classList.add("active");
-    negCustomInput.addEventListener("input", function () {
-      state.opt.negativeMarks = Math.max(0, Math.min(100, parseFloat(negCustomInput.value) || 0));
-    });
-    negRow.appendChild(negSeg);
-    negGroup.appendChild(negRow);
-    negGroup.appendChild(negCustomRow);
-    root.appendChild(negGroup);
-
-    // -- Options: shuffle --
-    root.appendChild(el("div", "section-label", "Shuffle"));
-    var shuffleGroup = el("div", "opt-group");
-
-    var shuffleQRow = el("div", "opt-row");
-    var sqLabel = el("div");
-    sqLabel.appendChild(el("div", "opt-row-label", "Shuffle question order"));
-    sqLabel.appendChild(el("div", "opt-row-desc", "Randomize the order questions appear in"));
-    shuffleQRow.appendChild(sqLabel);
-    var sqSwitch = el("button", "switch");
-    sqSwitch.type = "button";
-    sqSwitch.appendChild(el("div", "knob"));
-    sqSwitch.addEventListener("click", function () {
-      haptic("selection");
-      var next = state.opt.shuffleQuestions === true ? false : true;
-      state.opt.shuffleQuestions = next;
-      sqSwitch.classList.toggle("on", next);
-    });
-    shuffleQRow.appendChild(sqSwitch);
-    shuffleGroup.appendChild(shuffleQRow);
-
-    var shuffleORow = el("div", "opt-row");
-    var soLabel = el("div");
-    soLabel.appendChild(el("div", "opt-row-label", "Shuffle answer options"));
-    soLabel.appendChild(el("div", "opt-row-desc", "Randomize the order options appear in"));
-    shuffleORow.appendChild(soLabel);
-    var soSwitch = el("button", "switch");
-    soSwitch.type = "button";
-    soSwitch.appendChild(el("div", "knob"));
-    soSwitch.addEventListener("click", function () {
-      haptic("selection");
-      var next = state.opt.shuffleOptions === true ? false : true;
-      state.opt.shuffleOptions = next;
-      soSwitch.classList.toggle("on", next);
-    });
-    shuffleORow.appendChild(soSwitch);
-    shuffleGroup.appendChild(shuffleORow);
-
-    root.appendChild(shuffleGroup);
-
-    var descP = el("p", "error-msg");
-    descP.style.margin = "2px auto 0";
-    descP.style.textAlign = "center";
-    descP.textContent = "Options apply to your attempt only — the quiz's saved settings are unchanged for everyone else.";
-    root.appendChild(descP);
-
-    var startBtn = el("button", "primary-btn");
-    setText(startBtn, state.mode === "exam" ? "Start Exam" : "Start Practice");
+    var startBtn = el("button", "primary-btn", "Start Quiz");
     startBtn.addEventListener("click", function () {
       haptic("impact", "medium");
       startBtn.disabled = true;
@@ -1462,15 +1742,17 @@
     });
     root.appendChild(startBtn);
 
-    // keep the button label in sync with mode choice
-    practiceCard.addEventListener("click", function () { setText(startBtn, "Start Practice"); });
-    examCard.addEventListener("click", function () { setText(startBtn, "Start Exam"); });
+    var note = el("p", "error-msg");
+    note.style.margin = "12px auto 0";
+    note.style.textAlign = "center";
+    note.textContent = "आपकी चुनी हुई settings केवल इस attempt पर लागू होंगी।";
+    root.appendChild(note);
 
     show("view-start");
   }
 
   /* ============ Quiz play flow ============ */
-  async function beginQuiz() {
+async function beginQuiz() {
     var result;
     try {
       result = await apiSession(state.qid, state.mode, state.opt);
@@ -1501,7 +1783,24 @@
     state.dots = new Array(state.total).fill("pending");
     state.position = 0;
     state.liveScore = 0;
+    state.answers = {};
+    state.answerResults = {};
+    state.marked = {};
+    state.resultData = null;
+    state.resultFilter = "all";
+    state.submitting = false;
     hideAllViews();
+
+    setText(qs("play-brand"), state.quizName || "Quiz");
+    qs("theme-toggle").onclick = toggleQsgDark;
+    qs("top-menu").onclick = openNavigator;
+    qs("previous-btn").onclick = goPrevious;
+    qs("review-btn").onclick = toggleMarkReview;
+    qs("clear-btn").onclick = clearCurrentResponse;
+    qs("save-btn").onclick = saveAndNext;
+    qs("navigator-btn").onclick = openNavigator;
+    qs("submit-btn").onclick = confirmSubmitQuiz;
+
     var modeTag = qs("mode-tag");
     setText(modeTag, state.mode === "exam" ? "Exam" : "Practice");
     modeTag.classList.remove("hidden");
@@ -1510,32 +1809,14 @@
   }
 
   function renderDots() {
-    var stepper = qs("dot-stepper");
-    stepper.innerHTML = "";
-    // cap visible dots to avoid overflow on huge quizzes
-    var max = 40;
-    var showAll = state.total <= max;
-    var indices = [];
-    if (showAll) {
-      for (var i = 0; i < state.total; i++) indices.push(i);
-    }
-    if (showAll) {
-      indices.forEach(function (i) {
-        var d = el("div", "dot");
-        if (i === state.position) d.classList.add("current");
-        else if (state.dots[i] === "correct") d.classList.add("done-correct");
-        else if (state.dots[i] === "wrong") d.classList.add("done-wrong");
-        else if (state.dots[i] === "answered") d.classList.add("done-answered");
-        stepper.appendChild(d);
-      });
-    }
+    // The visible status is now represented by the Question Navigator.
+    return;
   }
 
   function updateProgressHeader() {
     setText(qs("progress-label"), "Question " + (state.position + 1) + " of " + state.total);
-    var pct = state.total > 0 ? Math.round(((state.position) / state.total) * 100) : 0;
+    var pct = state.total > 0 ? Math.round(((state.position + 1) / state.total) * 100) : 0;
     qs("progress-fill").style.width = pct + "%";
-    renderDots();
     var scoreEl = qs("score-live");
     if (state.mode === "practice") {
       scoreEl.classList.remove("hidden");
@@ -1543,76 +1824,43 @@
     } else {
       scoreEl.classList.add("hidden");
     }
-  }
-
-  function roundNum(n) {
-    var r = Math.round(n * 100) / 100;
-    return r;
-  }
-
-  function clearQuestionTimer() {
-    if (state.timerHandle) {
-      clearInterval(state.timerHandle);
-      state.timerHandle = null;
+    var prev = qs("previous-btn");
+    var review = qs("review-btn");
+    var clear = qs("clear-btn");
+    var save = qs("save-btn");
+    var submit = qs("submit-btn");
+    if (prev) prev.disabled = state.position <= 0;
+    if (review) {
+      var marked = !!state.marked[state.position];
+      review.classList.toggle("marked", marked);
+      setText(review, marked ? "🟠 Unmark Review" : "🟠 Mark for Review");
     }
-  }
-
-  function startQuestionTimer(onExpire) {
-    clearQuestionTimer();
-    var wrap = qs("timer-wrap");
-    if (!state.timer || state.timer <= 0) {
-      wrap.classList.remove("active");
-      return;
-    }
-    wrap.classList.add("active");
-    state.timerRemaining = state.timer;
-    var fill = qs("timer-fill");
-    var num = qs("timer-num");
-    fill.style.transition = "none";
-    fill.style.width = "100%";
-    fill.style.backgroundColor = "";
-    // force reflow so the transition re-enables cleanly next tick
-    void fill.offsetWidth;
-    fill.style.transition = "width 1s linear, background-color .3s ease";
-    setText(num, state.timerRemaining);
-
-    state.timerHandle = setInterval(function () {
-      state.timerRemaining -= 1;
-      if (state.timerRemaining <= 0) {
-        clearQuestionTimer();
-        fill.style.width = "0%";
-        setText(num, "0");
-        onExpire();
-        return;
-      }
-      var pct = Math.max(0, (state.timerRemaining / state.timer) * 100);
-      fill.style.width = pct + "%";
-      setText(num, state.timerRemaining);
-      if (state.timerRemaining <= Math.ceil(state.timer * 0.2)) {
-        fill.style.backgroundColor = "var(--bad)";
-      }
-    }, 1000);
+    if (clear) clear.disabled = !state.answers[state.position] || !(state.answers[state.position].selected || []).length;
+    if (save) setText(save, state.position >= state.total - 1 ? "💾 Save" : "💾 Save & Next ➡️");
+    if (submit) submit.disabled = false;
   }
 
   async function loadQuestion(position) {
-    state.questionLocked = false;
-    mainButtonHide();
+    clearQuestionTimer();
+    state.position = Math.max(0, Math.min(state.total - 1, position));
+    var saved = state.answers[state.position];
+    state.questionLocked = !!(saved && saved.submitted);
     updateProgressHeader();
 
     var slot = qs("q-card-slot");
     slot.innerHTML = "";
     var skel = el("div", "q-card");
     skel.innerHTML =
-      '<div class="skel" style="height:18px;width:60%;margin-bottom:14px;"></div>' +
-      '<div class="skel" style="height:52px;margin-bottom:10px;"></div>' +
-      '<div class="skel" style="height:52px;margin-bottom:10px;"></div>' +
-      '<div class="skel" style="height:52px;margin-bottom:10px;"></div>' +
-      '<div class="skel" style="height:52px;"></div>';
+      '<div class="skel" style="height:22px;width:45%;margin-bottom:16px;"></div>' +
+      '<div class="skel" style="height:42px;margin-bottom:10px;"></div>' +
+      '<div class="skel" style="height:58px;margin-bottom:10px;"></div>' +
+      '<div class="skel" style="height:58px;margin-bottom:10px;"></div>' +
+      '<div class="skel" style="height:58px;"></div>';
     slot.appendChild(skel);
 
     var result;
     try {
-      result = await apiQuestion(state.attemptId, position);
+      result = await apiQuestion(state.attemptId, state.position);
     } catch (e) {
       renderError({ icon: "📡", title: "Connection problem", message: "We couldn't load this question. Please reopen the quiz from the bot." });
       return;
@@ -1630,14 +1878,29 @@
     state.currentQuestion = result.data;
     renderQuestion(result.data);
 
-    if (state.timer > 0) {
+    // Timer is only active for an unanswered question.
+    if (!state.questionLocked && state.timer > 0) {
       startQuestionTimer(function () {
         haptic("notification", "warning");
-        submitAnswer([], true);
+        var a = state.answers[state.position];
+        if (a && a.selected && a.selected.length) {
+          submitAnswer(a.selected, true);
+        } else {
+          state.dots[state.position] = "unanswered";
+          advance();
+        }
       });
     } else {
-      qs("timer-wrap").classList.remove("active");
+      qs("timer-fill").style.width = "100%";
+      setText(qs("timer-num"), state.timer > 0 ? formatTime(state.timer) : "--:--");
     }
+  }
+
+  function formatTime(seconds) {
+    seconds = Math.max(0, Math.floor(Number(seconds) || 0));
+    var m = Math.floor(seconds / 60);
+    var s = seconds % 60;
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
   }
 
   function renderQuestion(q) {
@@ -1652,8 +1915,8 @@
     }
 
     var meta = el("div", "q-meta");
-    meta.appendChild(el("div", "q-num-tag", "Question " + (q.position + 1) + " / " + q.total));
-    if (state.correctMarks) {
+    meta.appendChild(el("div", "q-num-tag", "❓ Question " + (q.position + 1) + " of " + q.total));
+    if (state.correctMarks !== undefined && state.correctMarks !== null) {
       var marksText = "+" + state.correctMarks + (state.negativeMarks ? " / −" + state.negativeMarks : "");
       meta.appendChild(el("div", "q-marks-tag", marksText));
     }
@@ -1664,12 +1927,14 @@
     card.appendChild(qt);
 
     if (q.is_multi) {
-      var hint = el("p", "multi-hint", "Select all that apply, then tap Submit.");
+      var hint = el("p", "multi-hint", "एक से अधिक विकल्प सही हो सकते हैं। चयन के बाद Save & Next दबाएँ।");
       card.appendChild(hint);
     }
 
     var optionsWrap = el("div", "options");
+    var saved = state.answers[state.position] || { selected: [], submitted: false };
     var selectedSet = {};
+    (saved.selected || []).forEach(function (i) { selectedSet[i] = true; });
     var btns = [];
 
     q.options.forEach(function (optText, idx) {
@@ -1683,10 +1948,14 @@
       btn.appendChild(mark);
       btn.dataset.idx = idx;
 
+      if (selectedSet[idx]) btn.classList.add("selected-pending");
+      if (state.questionLocked) btn.classList.add("locked");
+
       btn.addEventListener("click", function () {
-        if (state.questionLocked) return;
+        if (state.questionLocked || state.submitting) return;
+        haptic("selection");
+
         if (q.is_multi) {
-          haptic("selection");
           if (selectedSet[idx]) {
             delete selectedSet[idx];
             btn.classList.remove("selected-pending");
@@ -1694,88 +1963,36 @@
             selectedSet[idx] = true;
             btn.classList.add("selected-pending");
           }
-          var count = Object.keys(selectedSet).length;
-          mainButtonSet(count > 0 ? "Submit (" + count + ")" : "Submit", function () {
-            if (count === 0) return;
-            finalizeMulti();
-          });
         } else {
-          haptic("impact", "medium");
-          state.questionLocked = true;
-          btns.forEach(function (b) { b.classList.add("locked"); });
-          submitAnswer([idx], false);
+          selectedSet = {};
+          selectedSet[idx] = true;
+          btns.forEach(function (b) { b.classList.remove("selected-pending"); });
+          btn.classList.add("selected-pending");
         }
+
+        var selected = Object.keys(selectedSet).map(Number);
+        state.answers[state.position] = {
+          selected: selected,
+          submitted: !!(saved && saved.submitted)
+        };
+        updateProgressHeader();
       });
 
       optionsWrap.appendChild(btn);
       btns.push(btn);
     });
 
-    function finalizeMulti() {
-      var sel = Object.keys(selectedSet).map(Number);
-      if (sel.length === 0) return;
-      state.questionLocked = true;
-      btns.forEach(function (b) { b.classList.add("locked"); });
-      mainButtonHide();
-      haptic("impact", "medium");
-      submitAnswer(sel, false);
-    }
-
     card.appendChild(optionsWrap);
 
-    if (q.is_multi) {
-      mainButtonSet("Submit", function () {});
-      try { if (tg && tg.MainButton) tg.MainButton.disable(); } catch (e) {}
+    if (state.questionLocked && state.answerResults[state.position] && state.mode === "practice") {
+      showPracticeFeedbackInline(card, btns, state.answers[state.position].selected || [], state.answerResults[state.position], true);
     }
 
-    card._btns = btns;
-    card._optionsWrap = optionsWrap;
     slot.appendChild(card);
-  }
-
-  async function submitAnswer(selected, timedOut) {
-    clearQuestionTimer();
-    mainButtonHide();
-    state.answers[state.position] = { selected: selected };
-
-    var result;
-    try {
-      result = await apiAnswer(state.attemptId, state.position, selected);
-    } catch (e) {
-      renderError({ icon: "📡", title: "Connection problem", message: "We couldn't submit your answer. Please reopen the quiz from the bot." });
-      return;
-    }
-
-    if (!result.ok) {
-      if (result.status === 409) {
-        // already answered somehow - just advance gracefully
-        advance();
-        return;
-      }
-      renderError({ icon: "⚠️", title: "Something went wrong", message: "We couldn't submit your answer. Please reopen the quiz from the bot." });
-      return;
-    }
-
-    var ans = result.data;
-    state.liveScore += (ans.score_delta || 0);
-
-    if (state.mode === "practice") {
-      state.dots[state.position] = ans.correct ? "correct" : "wrong";
-      showPracticeFeedback(selected, ans);
-      haptic("notification", ans.correct ? "success" : "error");
-    } else {
-      state.dots[state.position] = "answered";
-      showExamAnsweredState();
-      window.setTimeout(function () { advance(); }, 350);
-    }
     updateProgressHeader();
   }
 
-  function showPracticeFeedback(selected, ans) {
-    var slot = qs("q-card-slot");
-    var card = slot.querySelector(".q-card");
-    if (!card) return;
-    var btns = card._btns || [];
+  function showPracticeFeedbackInline(card, btns, selected, ans, compact) {
     var selectedSet = {};
     selected.forEach(function (i) { selectedSet[i] = true; });
     var correctSet = {};
@@ -1785,65 +2002,216 @@
       var idx = Number(btn.dataset.idx);
       btn.classList.remove("selected-pending");
       btn.classList.add("locked");
-      if (correctSet[idx]) {
-        btn.classList.add("correct");
-      } else if (selectedSet[idx]) {
-        btn.classList.add("wrong");
-      } else {
-        btn.classList.add("dimmed");
-      }
+      if (correctSet[idx]) btn.classList.add("correct");
+      else if (selectedSet[idx]) btn.classList.add("wrong");
+      else btn.classList.add("dimmed");
     });
 
     var banner = el("div", "feedback-banner " + (ans.correct ? "ok" : "bad"));
-    banner.innerHTML = ans.correct ? "🎉 Correct!" : "✗ Not quite";
+    banner.innerHTML = ans.correct ? "🎉 Correct!" : "❌ Incorrect";
     card.appendChild(banner);
 
     if (ans.explanation) {
       var exp = el("div", "explanation");
-      var label = el("span", "exp-label", "Explanation");
-      exp.appendChild(label);
+      exp.appendChild(el("span", "exp-label", "Explanation"));
       var body = document.createElement("div");
       renderRich(body, ans.explanation);
       exp.appendChild(body);
       card.appendChild(exp);
     }
 
-    var isLast = state.position >= state.total - 1;
-    var actions = el("div", "bottom-actions");
-    var nextBtn = el("button", "primary-btn");
-    nextBtn.textContent = isLast ? "See Results" : "Next Question";
-    nextBtn.addEventListener("click", function () {
-      haptic("impact", "light");
-      advance();
-    });
-    actions.appendChild(nextBtn);
-    card.appendChild(actions);
-
-    var autoNextMs = 1800;
-    var hint = el("div", "next-hint", "Auto-advancing…");
-    card.appendChild(hint);
-
-    var advanced = false;
-    var autoTimer = window.setTimeout(function () {
-      if (advanced) return;
-      advanced = true;
-      advance();
-    }, autoNextMs);
-
-    nextBtn.addEventListener("click", function () {
-      advanced = true;
-      window.clearTimeout(autoTimer);
-    });
+    if (!compact) {
+      var actions = el("div", "bottom-actions");
+      var nextBtn = el("button", "primary-btn", state.position >= state.total - 1 ? "See Results" : "Next Question");
+      nextBtn.addEventListener("click", function () { advance(); });
+      actions.appendChild(nextBtn);
+      card.appendChild(actions);
+    }
   }
 
-  function showExamAnsweredState() {
+  async function submitAnswer(selected, timedOut) {
+    clearQuestionTimer();
+    if (state.submitting) return;
+    state.submitting = true;
+
+    selected = Array.isArray(selected) ? selected.map(Number).filter(function (n) { return isFinite(n); }) : [];
+    state.answers[state.position] = { selected: selected, submitted: false };
+
+    var result;
+    try {
+      result = await apiAnswer(state.attemptId, state.position, selected);
+    } catch (e) {
+      state.submitting = false;
+      renderError({ icon: "📡", title: "Connection problem", message: "We couldn't submit your answer. Please reopen the quiz from the bot." });
+      return;
+    }
+
+    if (!result.ok) {
+      state.submitting = false;
+      if (result.status === 409) {
+        state.answers[state.position].submitted = true;
+        state.dots[state.position] = selected.length ? "answered" : "unanswered";
+        advance();
+        return;
+      }
+      renderError({ icon: "⚠️", title: "Something went wrong", message: "We couldn't submit your answer. Please try again." });
+      return;
+    }
+
+    var ans = result.data;
+    state.answers[state.position].submitted = true;
+    state.answerResults[state.position] = ans;
+    state.liveScore += (ans.score_delta || 0);
+
+    if (selected.length) {
+      state.dots[state.position] = state.marked[state.position] ? "marked" : (ans.correct ? "correct" : "wrong");
+    } else {
+      state.dots[state.position] = "unanswered";
+    }
+
+    state.submitting = false;
+
+    if (state.mode === "practice") {
+      showPracticeFeedback(selected, ans, timedOut);
+      haptic("notification", selected.length ? (ans.correct ? "success" : "error") : "warning");
+    } else {
+      advance();
+    }
+    updateProgressHeader();
+  }
+
+  function showPracticeFeedback(selected, ans, timedOut) {
     var slot = qs("q-card-slot");
     var card = slot.querySelector(".q-card");
     if (!card) return;
-    var btns = card._btns || [];
-    btns.forEach(function (btn) { btn.classList.add("locked"); });
-    var tag = el("div", "exam-answered-tag", "✓ Answer recorded");
-    card.appendChild(tag);
+    var btns = Array.prototype.slice.call(card.querySelectorAll(".option-btn"));
+    showPracticeFeedbackInline(card, btns, selected, ans, false);
+
+    var hint = el("div", "next-hint", timedOut ? "⏱️ Time over" : "Tap Next Question to continue");
+    card.appendChild(hint);
+  }
+
+  function showExamAnsweredState() {
+    // Kept for compatibility with the previous client implementation.
+    updateProgressHeader();
+  }
+
+  function saveAndNext() {
+    if (state.submitting) return;
+    var a = state.answers[state.position] || { selected: [], submitted: false };
+
+    if (a.submitted) {
+      advance();
+      return;
+    }
+
+    var selected = a.selected || [];
+    if (!selected.length) {
+      state.dots[state.position] = "unanswered";
+      advance();
+      return;
+    }
+    submitAnswer(selected, false);
+  }
+
+  function goPrevious() {
+    if (state.position <= 0 || state.submitting) return;
+    clearQuestionTimer();
+    state.position -= 1;
+    loadQuestion(state.position);
+  }
+
+  function toggleMarkReview() {
+    if (state.submitting) return;
+    state.marked[state.position] = !state.marked[state.position];
+    state.dots[state.position] = state.marked[state.position]
+      ? "marked"
+      : ((state.answers[state.position] && state.answers[state.position].submitted) ? "answered" : "unanswered");
+    haptic("selection");
+    updateProgressHeader();
+  }
+
+  function clearCurrentResponse() {
+    if (state.submitting) return;
+    var a = state.answers[state.position];
+    if (!a || a.submitted) return;
+    state.answers[state.position] = { selected: [], submitted: false };
+    state.dots[state.position] = state.marked[state.position] ? "marked" : "unanswered";
+    haptic("impact", "light");
+    renderQuestion(state.currentQuestion);
+    updateProgressHeader();
+  }
+
+  function openNavigator() {
+    var overlay = qs("navigator-overlay");
+    if (!overlay) return;
+    overlay.innerHTML = "";
+
+    var sheet = el("div", "navigator-sheet");
+    var head = el("div", "navigator-head");
+    head.appendChild(el("div", "navigator-title", "📋 Question Navigator"));
+    var close = el("button", "navigator-close", "✕");
+    close.type = "button";
+    close.onclick = closeNavigator;
+    head.appendChild(close);
+    sheet.appendChild(head);
+
+    var legend = el("div", "navigator-legend");
+    legend.innerHTML =
+      '<span><i class="legend-dot legend-green"></i> Answered</span>' +
+      '<span><i class="legend-dot legend-orange"></i> Marked for Review</span>' +
+      '<span><i class="legend-dot legend-blue"></i> Unanswered</span>';
+    sheet.appendChild(legend);
+
+    var grid = el("div", "nav-grid");
+    for (var i = 0; i < state.total; i++) {
+      var b = el("button", "nav-q");
+      b.type = "button";
+      var answered = !!(state.answers[i] && state.answers[i].submitted);
+      if (state.marked[i]) b.classList.add("marked");
+      else if (answered) b.classList.add("answered");
+      else b.classList.add("unanswered");
+      if (i === state.position) b.classList.add("current");
+      setText(b, String(i + 1));
+      (function (pos) {
+        b.onclick = function () {
+          closeNavigator();
+          if (pos === state.position) return;
+          clearQuestionTimer();
+          state.position = pos;
+          loadQuestion(pos);
+        };
+      })(i);
+      grid.appendChild(b);
+    }
+    sheet.appendChild(grid);
+
+    overlay.appendChild(sheet);
+    overlay.classList.remove("hidden");
+    overlay.onclick = function (e) {
+      if (e.target === overlay) closeNavigator();
+    };
+  }
+
+  function closeNavigator() {
+    var overlay = qs("navigator-overlay");
+    if (overlay) {
+      overlay.classList.add("hidden");
+      overlay.innerHTML = "";
+    }
+  }
+
+  function confirmSubmitQuiz() {
+    if (state.submitting) return;
+    var answered = 0;
+    for (var i = 0; i < state.total; i++) {
+      if (state.answers[i] && state.answers[i].submitted) answered++;
+    }
+    var unanswered = state.total - answered;
+    var msg = unanswered > 0
+      ? "अभी " + unanswered + " questions unanswered हैं। क्या आप quiz submit करना चाहते हैं?"
+      : "क्या आप quiz submit करना चाहते हैं?";
+    if (window.confirm(msg)) finishQuiz();
   }
 
   function advance() {
@@ -1852,18 +2220,8 @@
       finishQuiz();
       return;
     }
-    var slot = qs("q-card-slot");
-    var card = slot.querySelector(".q-card");
-    if (card) {
-      card.classList.add("leaving");
-      window.setTimeout(function () {
-        state.position += 1;
-        loadQuestion(state.position);
-      }, 160);
-    } else {
-      state.position += 1;
-      loadQuestion(state.position);
-    }
+    state.position += 1;
+    loadQuestion(state.position);
   }
 
   async function finishQuiz() {
@@ -1893,28 +2251,18 @@
     mainButtonHide();
     window.scrollTo(0, 0);
 
+    state.resultData = data;
+    state.resultFilter = "all";
+
     var root = qs("view-results");
     root.innerHTML = "";
-
-    var mast = el("div", "masthead");
-    var badge = el("div", "masthead-badge", "✓");
-    var mastText = el("div");
-    mastText.appendChild(el("div", "masthead-title", "Results"));
-    mastText.appendChild(el("div", "masthead-sub", state.quizName));
-    mast.appendChild(badge);
-    mast.appendChild(mastText);
-    root.appendChild(mast);
 
     var totalQ = data.total_questions || state.total || 1;
     var maxScore = totalQ * (state.correctMarks || 1);
     var pct = maxScore > 0 ? Math.max(0, Math.min(100, Math.round((data.score / maxScore) * 100))) : 0;
-    // fall back to correct_count ratio if marks are weird
-    if (!isFinite(pct) || (state.correctMarks === undefined)) {
-      pct = totalQ > 0 ? Math.round((data.correct_count / totalQ) * 100) : 0;
-    }
+    if (!isFinite(pct)) pct = 0;
 
     var hero = el("div", "results-hero");
-
     var ringWrap = el("div", "results-ring-wrap");
     var r = 70, c = 2 * Math.PI * r;
     ringWrap.innerHTML =
@@ -1922,126 +2270,74 @@
       '<circle class="ring-bg" cx="78" cy="78" r="' + r + '"></circle>' +
       '<circle class="ring-fg" id="ring-fg" cx="78" cy="78" r="' + r + '" stroke-dasharray="' + c + '" stroke-dashoffset="' + c + '"></circle>' +
       '</svg>' +
-      '<div class="ring-score"><div class="val" id="ring-val">0%</div><div class="lbl">score</div></div>';
+      '<div class="ring-score"><div class="val" id="ring-val">0%</div><div class="lbl">percentage</div></div>';
     hero.appendChild(ringWrap);
 
-    var headline = el("h2", "result-headline");
-    var sub = el("p", "result-sub");
-    if (pct >= 90) { headline.textContent = "Outstanding"; }
-    else if (pct >= 70) { headline.textContent = "Great job"; }
-    else if (pct >= 50) { headline.textContent = "Good effort"; }
-    else { headline.textContent = "Keep practicing"; }
-    sub.textContent = pct >= 70
-      ? "You really know your stuff."
-      : (pct >= 50 ? "You're getting there — review and try again." : "Every attempt makes you sharper. Don't give up!");
+    var headline = el("h2", "result-headline", pct >= 90 ? "Outstanding!" : (pct >= 70 ? "Great Job!" : (pct >= 50 ? "Good Effort!" : "Keep Practicing!")));
     hero.appendChild(headline);
-    hero.appendChild(sub);
-
-    if (data.rank) {
-      var rankPill = el("div", "rank-pill");
-      rankPill.innerHTML = "🏆 Rank #" + esc(data.rank);
-      hero.appendChild(rankPill);
-    }
-
+    hero.appendChild(el("p", "result-sub", "Final Score: " + roundNum(data.score) + " / " + roundNum(maxScore)));
     root.appendChild(hero);
 
     var grid = el("div", "stat-grid");
-    var boxes = [
-      { cls: "correct", v: data.correct_count, l: "Correct" },
-      { cls: "wrong", v: data.wrong_count, l: "Wrong" },
-      { cls: "", v: data.unanswered, l: "Skipped" }
-    ];
-    boxes.forEach(function (b) {
+    [
+      { cls:"", v: totalQ, l:"Total" },
+      { cls:"correct", v:data.correct_count || 0, l:"Correct" },
+      { cls:"wrong", v:data.wrong_count || 0, l:"Incorrect" }
+    ].forEach(function (b) {
       var box = el("div", "stat-box " + b.cls);
-      var sv = el("div", "sv"); setText(sv, b.v);
-      var sl = el("div", "sl", b.l);
-      box.appendChild(sv);
-      box.appendChild(sl);
+      box.appendChild(el("div", "sv", b.v));
+      box.appendChild(el("div", "sl", b.l));
       grid.appendChild(box);
     });
+    [
+      { cls:"", v:data.unanswered || 0, l:"Not Answered" },
+      { cls:"wrong", v:roundNum(data.negative_marks || 0), l:"Negative Marks" },
+      { cls:"", v:pct + "%", l:"Percentage" }
+    ].forEach(function (b) {
+      var box = el("div", "stat-box " + b.cls);
+      box.appendChild(el("div", "sv", b.v));
+      box.appendChild(el("div", "sl", b.l));
+      grid.appendChild(box);
+    });
+    grid.style.gridTemplateColumns = "repeat(3, 1fr)";
     root.appendChild(grid);
 
-    var scoreLine = el("div", "stat-row");
-    var scorePill = el("div", "stat-pill");
-    scorePill.innerHTML = "⭐ Score: <b>" + roundNum(data.score) + "</b>";
-    scoreLine.appendChild(scorePill);
-    if (data.total_time) {
-      var timePill = el("div", "stat-pill");
-      var mins = Math.floor(data.total_time / 60);
-      var secs = Math.round(data.total_time % 60);
-      timePill.innerHTML = "⏱️ " + (mins > 0 ? mins + "m " : "") + secs + "s";
-      scoreLine.appendChild(timePill);
-    }
-    scoreLine.style.justifyContent = "center";
-    scoreLine.style.marginTop = "-4px";
-    root.appendChild(scoreLine);
+    var filter = el("div", "result-filter");
+    [
+      ["all","All Questions"],
+      ["correct","Correct"],
+      ["incorrect","Incorrect"],
+      ["unanswered","Not Answered"]
+    ].forEach(function (pair) {
+      var b = el("button", "result-filter-btn" + (pair[0] === "all" ? " active" : ""), pair[1]);
+      b.type = "button";
+      b.onclick = function () {
+        state.resultFilter = pair[0];
+        Array.prototype.slice.call(filter.children).forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+        renderReviewList(root, data);
+      };
+      filter.appendChild(b);
+    });
+    root.appendChild(filter);
 
-    // Exam mode review
-    if (data.review && data.review.length) {
-      var reviewSection = el("div", "review-section");
-      var rTitle = el("div", "review-title", "Question Review");
-      reviewSection.appendChild(rTitle);
+    renderReviewList(root, data);
 
-      data.review.forEach(function (item) {
-        var card = el("div", "review-item");
-        var head = el("div", "review-item-head");
-        var num = el("div", "review-q-num", "Question " + (item.position + 1));
-        var badgeCls = item.selected && item.selected.length ? (item.correct ? "ok" : "bad") : "skip";
-        var badgeText = item.selected && item.selected.length ? (item.correct ? "Correct" : "Incorrect") : "Skipped";
-        var badge2 = el("div", "review-badge " + badgeCls, badgeText);
-        head.appendChild(num);
-        head.appendChild(badge2);
-        card.appendChild(head);
-
-        var qtext = el("div", "review-q-text");
-        renderRich(qtext, item.question);
-        card.appendChild(qtext);
-
-        var correctSet = {};
-        (item.correct_options || []).forEach(function (i) { correctSet[i] = true; });
-        var selectedSet = {};
-        (item.selected || []).forEach(function (i) { selectedSet[i] = true; });
-
-        (item.options || []).forEach(function (optText, idx) {
-          var row = el("div", "review-opt");
-          var isCorrect = !!correctSet[idx];
-          var isSelected = !!selectedSet[idx];
-          if (isCorrect) row.classList.add("correct");
-          else if (isSelected && !isCorrect) row.classList.add("wrong");
-
-          var rl = el("span", "rl", OPTION_LETTERS[idx] || (idx + 1));
-          var rt = el("span", "rt");
-          renderRich(rt, optText);
-          row.appendChild(rl);
-          row.appendChild(rt);
-
-          if (isCorrect || isSelected) {
-            var tag = el("span", "rtag");
-            if (isCorrect && isSelected) tag.textContent = "YOUR PICK · CORRECT";
-            else if (isCorrect) tag.textContent = "CORRECT";
-            else if (isSelected) tag.textContent = "YOUR PICK";
-            rt.appendChild(tag);
-          }
-          card.appendChild(row);
-        });
-
-        if (item.explanation) {
-          var exp = el("div", "review-explanation");
-          renderRich(exp, item.explanation);
-          card.appendChild(exp);
-        }
-
-        reviewSection.appendChild(card);
-      });
-
-      root.appendChild(reviewSection);
-    }
-
+    var restart = el("button", "restart-btn", "🔄 Restart Quiz");
+    restart.onclick = function () {
+      haptic("impact", "medium");
+      state.attemptId = null;
+      state.answers = {};
+      state.answerResults = {};
+      state.marked = {};
+      state.resultData = null;
+      renderStart({ total_questions: state.total });
+    };
+    root.appendChild(restart);
     root.appendChild(el("div", "footer-space"));
 
     show("view-results");
 
-    // animate ring
     window.requestAnimationFrame(function () {
       window.requestAnimationFrame(function () {
         var fg = qs("ring-fg");
@@ -2062,6 +2358,95 @@
     } else {
       haptic("notification", "error");
     }
+  }
+
+  function renderReviewList(root, data) {
+    var old = root.querySelector(".result-review-list");
+    if (old) old.remove();
+
+    var wrap = el("div", "review-section result-review-list");
+    var title = el("div", "review-title", "Question Review");
+    wrap.appendChild(title);
+
+    var review = data.review || [];
+    var filter = state.resultFilter || "all";
+    var shown = review.filter(function (item) {
+      var answered = item.selected && item.selected.length;
+      if (filter === "correct") return answered && item.correct;
+      if (filter === "incorrect") return answered && !item.correct;
+      if (filter === "unanswered") return !answered;
+      return true;
+    });
+
+    if (!shown.length) {
+      var empty = el("div", "review-item");
+      empty.style.textAlign = "center";
+      empty.textContent = "इस category में कोई question नहीं है।";
+      wrap.appendChild(empty);
+    }
+
+    shown.forEach(function (item) {
+      var card = el("div", "review-item");
+      var head = el("div", "review-item-head");
+      head.appendChild(el("div", "review-q-num", "Question " + (item.position + 1)));
+
+      var answered = item.selected && item.selected.length;
+      var badgeCls = answered ? (item.correct ? "ok" : "bad") : "skip";
+      var badgeText = answered ? (item.correct ? "Correct" : "Incorrect") : "Not Answered";
+      head.appendChild(el("div", "review-badge " + badgeCls, badgeText));
+      card.appendChild(head);
+
+      var qtext = el("div", "review-q-text");
+      renderRich(qtext, item.question);
+      card.appendChild(qtext);
+
+      var correctSet = {};
+      (item.correct_options || []).forEach(function (i) { correctSet[i] = true; });
+      var selectedSet = {};
+      (item.selected || []).forEach(function (i) { selectedSet[i] = true; });
+
+      (item.options || []).forEach(function (optText, idx) {
+        var row = el("div", "review-opt");
+        var isCorrect = !!correctSet[idx];
+        var isSelected = !!selectedSet[idx];
+        if (isCorrect) row.classList.add("correct");
+        else if (isSelected) row.classList.add("wrong");
+
+        var rl = el("span", "rl", OPTION_LETTERS[idx] || (idx + 1));
+        var rt = el("span", "rt");
+        renderRich(rt, optText);
+        row.appendChild(rl);
+        row.appendChild(rt);
+
+        if (isSelected) {
+          var your = el("span", "rtag", "Your Answer");
+          rt.appendChild(your);
+        }
+        if (isCorrect) {
+          var correct = el("span", "rtag", "Correct Answer");
+          rt.appendChild(correct);
+        }
+        card.appendChild(row);
+      });
+
+      if (!answered) {
+        card.appendChild(el("div", "review-explanation", "⚪ Not Answered"));
+      }
+      if (item.explanation) {
+        var exp = el("div", "review-explanation");
+        exp.innerHTML = "<strong>Explanation</strong>";
+        var body = document.createElement("div");
+        renderRich(body, item.explanation);
+        exp.appendChild(body);
+        card.appendChild(exp);
+      }
+      wrap.appendChild(card);
+    });
+
+    // Keep filters above the list; insert immediately after them.
+    var filter = root.querySelector(".result-filter");
+    if (filter && filter.nextSibling) root.insertBefore(wrap, filter.nextSibling);
+    else root.appendChild(wrap);
   }
 
   function animateCount(elm, target) {
@@ -2156,4 +2541,41 @@
 })();
 </script>
 </body>
-</html>
+</html>function startQuestionTimer(onExpire) {
+    clearQuestionTimer();
+    var wrap = qs("top-timer-box");
+    if (!state.timer || state.timer <= 0) {
+      if (wrap) wrap.classList.remove("active");
+      setText(qs("timer-num"), "--:--");
+      return;
+    }
+    if (wrap) wrap.classList.add("active");
+    state.timerRemaining = state.timer;
+    var fill = qs("timer-fill");
+    var num = qs("timer-num");
+    fill.style.transition = "none";
+    fill.style.width = "100%";
+    fill.style.backgroundColor = "";
+    void fill.offsetWidth;
+    fill.style.transition = "width 1s linear, background-color .3s ease";
+    setText(num, formatTime(state.timerRemaining));
+
+    state.timerHandle = setInterval(function () {
+      state.timerRemaining -= 1;
+      if (state.timerRemaining <= 0) {
+        clearQuestionTimer();
+        fill.style.width = "0%";
+        setText(num, "00:00");
+        onExpire();
+        return;
+      }
+      var pct = Math.max(0, (state.timerRemaining / state.timer) * 100);
+      fill.style.width = pct + "%";
+      setText(num, formatTime(state.timerRemaining));
+      if (state.timerRemaining <= Math.ceil(state.timer * 0.2)) {
+        fill.style.backgroundColor = "var(--bad)";
+      }
+    }, 1000);
+  }
+
+  
