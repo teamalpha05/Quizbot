@@ -1239,30 +1239,37 @@ async def start_quiz(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
             )
             return
 
-        user_id = update.message.from_user.id
+       user_id = update.message.from_user.id
 
-        if not await is_premium_user(user_id):
-            await safe_send_message(ctx, chat_id, "Please help us to make this project more valuable by purchasing premium! Thanks")
-            return
-        if not await rate_limiter.check(user_id):
-            await safe_send_message(ctx, chat_id, "⏱️ Too many requests. Wait a moment.")
-            return
+if not await is_premium_user(user_id):
+    await safe_send_message(
+        ctx,
+        chat_id,
+        "Please help us to make this project more valuable by purchasing premium! Thanks"
+    )
+    return
 
-       if not ctx.args:
+if not await rate_limiter.check(user_id):
+    await safe_send_message(
+        ctx,
+        chat_id,
+        "⏱️ Too many requests. Wait a moment."
+    )
+    return
+
+if not ctx.args:
     welcome = (
         "👋 Welcome to <b>Advance Quiz Bot</b>!\n\n"
         "Create quizzes with MCQs, sections, timers, and more.\n\n"
         "Use /help to learn usage!"
     )
 
-    join_buttons = [
-        [
-            InlineKeyboardButton(
-                "📢 Join Our Channel",
-                url="https://t.me/AIpha_World"
-            )
-        ]
-    ]
+    join_buttons = [[
+        InlineKeyboardButton(
+            "📢 Join Our Channel",
+            url="https://t.me/AIpha_World"
+        )
+    ]]
 
     await safe_send_message(
         ctx,
