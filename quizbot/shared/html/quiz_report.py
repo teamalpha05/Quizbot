@@ -625,6 +625,12 @@ def _page_shell(*, title: str, extra_head: str, body: str, extra_scripts: str) -
   .quiz-header {{
     height: 106px;
     padding: 8px 10px 7px;
+    background: #2f5597;
+    color: #fff;
+  }}
+  .quiz-header .quiz-title,
+  .quiz-header .header-progress {{
+    color: #fff;
   }}
   .header-top {{
     margin-bottom: 7px;
@@ -648,7 +654,7 @@ def _page_shell(*, title: str, extra_head: str, body: str, extra_scripts: str) -
 
   .question-section {{
     top: 106px;
-    bottom: 86px;
+    bottom: 76px;
     padding: 8px 8px 12px;
   }}
   .question-card {{
@@ -704,34 +710,34 @@ def _page_shell(*, title: str, extra_head: str, body: str, extra_scripts: str) -
     left: 0;
     right: 0;
     bottom: 0;
-    height: 86px;
-    padding: 5px 7px calc(5px + env(safe-area-inset-bottom));
+    height: 76px;
+    padding: 4px 7px calc(4px + env(safe-area-inset-bottom));
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 5px;
+    gap: 4px;
     z-index: 999;
     background: var(--bg-white);
-    box-shadow: 0 -2px 12px rgba(0,0,0,.10);
+    box-shadow: 0 -2px 10px rgba(0,0,0,.10);
   }}
   .nav-btn {{
     width: 100%;
     min-width: 0;
     min-height: 0;
     height: 100%;
-    padding: 5px 6px;
-    border-radius: 9px;
-    font-size: 12px;
-    line-height: 1.05;
-    gap: 5px;
+    padding: 3px 5px;
+    border-radius: 8px;
+    font-size: 11px;
+    line-height: 1.02;
+    gap: 4px;
   }}
-  .nav-btn i {{ font-size: 11px; }}
+  .nav-btn i {{ font-size: 10px; }}
   .question-nav-toggle {{
     right: 10px;
-    bottom: 94px;
-    width: 42px;
-    height: 42px;
-    font-size: 17px;
+    bottom: 84px;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
     z-index: 90;
   }}
   .question-nav-panel {{
