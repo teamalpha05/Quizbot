@@ -1307,78 +1307,403 @@ body{{font-family:'Poppins',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .action-btn.primary{{background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);color:#fff}}
 .action-btn.secondary{{background:var(--bg-white);color:var(--text-dark);border:2px solid var(--border)}}
 .action-btn:hover{{transform:translateY(-2px)}}
-/* Mobile CBT layout: compact, fixed header/footer, with the question card
-   kept at its natural height so the remaining viewport stays intentionally
-   empty just like a real exam app. No quiz logic is changed. */
+{_QUIZ_DESKTOP_CSS}
+
+/* -------------------------------------------------------------------------
+   Mobile FIT ONLY
+   IMPORTANT: CSS only. No HTML/JS/Python quiz logic is changed here.
+   ------------------------------------------------------------------------- */
 @media (max-width: 1023px) {{
-  html, body {{ width:100%; min-height:100%; overflow:hidden !important; }}
-  body {{ min-height:100dvh; }}
-  #quizContainer {{ height:100dvh !important; min-height:100dvh !important; overflow:hidden !important; }}
-  .quiz-header {{ height:126px; padding:10px 12px 9px; }}
-  .header-top {{ height:50px; margin-bottom:8px; gap:6px; }}
-  .quiz-title {{ font-size:14px; gap:6px; }}
-  .quiz-title-text {{ max-width:185px; }}
-  .mode-badge {{ font-size:8px; padding:3px 7px; }}
-  .header-actions {{ gap:6px; }}
-  .theme-toggle {{ width:42px; height:42px; border-radius:12px; font-size:17px; }}
-  .timer-display {{ min-width:92px; height:42px; padding:6px 10px; justify-content:center; font-size:15px; border-radius:12px; }}
-  .header-progress {{ font-size:11px; margin-bottom:7px; }}
-  .progress-bar-container {{ height:6px; }}
-  .progress-bar {{ height:5px; }}
-  .question-section {{ top:126px !important; bottom:116px !important; padding:12px 10px 18px !important; overflow-y:auto !important; overflow-x:hidden !important; -webkit-overflow-scrolling:touch; }}
-  .question-card {{ width:100%; max-width:none; padding:18px 14px 16px; margin:0 auto; border-radius:18px; }}
-  .question-number {{ font-size:12px; padding:6px 12px; margin-bottom:12px; }}
-  .question-reference {{ font-size:13px; padding:10px 12px; margin-bottom:12px; line-height:1.45; }}
-  .question-text {{ font-size:16px; line-height:1.48; margin-bottom:14px; }}
-  .question-text p {{ margin-bottom:7px; }}
-  .options-container {{ gap:8px; }}
-  .option-btn {{ min-height:58px; padding:10px 12px; border-width:2px; border-radius:12px; font-size:15px; line-height:1.35; gap:10px; }}
-  .option-indicator {{ min-width:30px; width:30px; height:30px; font-size:13px; }}
-  .option-text {{ padding-top:2px; }}
-  .explanation-box {{ padding:11px 12px; margin-top:12px; }}
-  .explanation-header {{ font-size:12px; margin-bottom:6px; }}
-  .explanation-text {{ font-size:12px; line-height:1.45; }}
-  .nav-controls {{ position:fixed !important; left:0; right:0; bottom:0; height:116px; padding:7px 10px calc(7px + env(safe-area-inset-bottom)); display:grid !important; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:7px; z-index:500; }}
-  .nav-btn {{ min-width:0 !important; width:100%; height:100%; padding:7px 5px; border-radius:11px; font-size:13px; line-height:1.1; gap:5px; white-space:nowrap; }}
-  .nav-btn i {{ font-size:12px; }}
-  .question-nav-toggle {{ right:10px; bottom:126px; width:44px; height:44px; font-size:17px; }}
-  .question-nav-panel {{ max-height:72dvh; padding:14px; }}
-  .nav-panel-header {{ margin-bottom:12px; padding-bottom:10px; }}
-  .nav-panel-title {{ font-size:15px; }}
-  .nav-legend {{ gap:8px; margin-bottom:12px; font-size:11px; }}
-  .legend-box {{ width:16px; height:16px; }}
-  .question-grid {{ grid-template-columns:repeat(5,1fr); gap:7px; }}
-  .question-nav-item {{ font-size:12px; border-radius:8px; border-width:1px; }}
-  #resultsContainer {{ height:100dvh; padding:10px; }}
-  .results-header {{ padding:22px 12px; margin-bottom:10px; border-radius:16px; }}
-  .results-icon {{ font-size:50px; margin-bottom:10px; }}
-  .results-title {{ font-size:22px; margin-bottom:6px; }}
-  .results-score {{ font-size:38px; margin-bottom:5px; }}
-  .results-percentage {{ font-size:16px; }}
-  .stats-grid {{ grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:10px; }}
-  .stat-card {{ padding:12px; border-radius:12px; }}
-  .stat-icon {{ width:34px; height:34px; border-radius:9px; font-size:15px; margin-bottom:7px; }}
-  .stat-value {{ font-size:24px; }}
-  .stat-label {{ font-size:11px; }}
-  .action-buttons {{ gap:8px; }}
-  .action-btn {{ padding:12px; font-size:13px; border-radius:10px; }}
-  #modeSelection {{ min-height:100dvh; padding:12px; }}
-  .mode-container {{ padding:22px 16px; border-radius:18px; max-height:calc(100dvh - 24px); overflow-y:auto; }}
-  .mode-header {{ margin-bottom:18px; }}
-  .mode-header-icon {{ width:54px; height:54px; margin-bottom:10px; border-radius:15px; font-size:27px; }}
-  .mode-header h2 {{ font-size:21px; margin-bottom:5px; }}
-  .mode-header p {{ font-size:12px; }}
-  .mode-cards {{ gap:9px; margin-bottom:15px; }}
-  .mode-card {{ padding:12px; border-radius:12px; border-width:1px; }}
-  .mode-icon {{ width:40px; height:40px; border-radius:10px; font-size:18px; margin-right:11px; }}
-  .mode-info h3 {{ font-size:15px; margin-bottom:2px; }}
-  .mode-info p {{ font-size:11px; }}
-  .timer-config {{ margin-bottom:14px; }}
-  .timer-config label {{ font-size:12px; margin-bottom:6px; }}
-  .timer-input {{ padding:10px 12px; font-size:13px; border-radius:9px; }}
-  .start-btn {{ padding:12px; font-size:14px; border-radius:10px; }}
+  html, body {{
+    width: 100%;
+    min-height: 100%;
+    overflow: hidden;
+  }}
+
+  body {{
+    min-height: 100dvh;
+  }}
+
+  #quizContainer {{
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+  }}
+
+  .quiz-header {{
+    padding: 10px 12px !important;
+  }}
+
+  .header-top {{
+    margin-bottom: 8px !important;
+    gap: 6px !important;
+  }}
+
+  .quiz-title {{
+    font-size: 14px !important;
+    gap: 6px !important;
+  }}
+
+  .quiz-title-text {{
+    max-width: 150px !important;
+  }}
+
+  .mode-badge {{
+    font-size: 9px !important;
+    padding: 3px 7px !important;
+  }}
+
+  .header-actions {{
+    gap: 5px !important;
+  }}
+
+  .theme-toggle {{
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 15px !important;
+  }}
+
+  .timer-display {{
+    padding: 7px 10px !important;
+    font-size: 14px !important;
+    gap: 5px !important;
+    border-radius: 10px !important;
+  }}
+
+  .header-progress {{
+    font-size: 11px !important;
+    margin-bottom: 6px !important;
+  }}
+
+  .progress-bar-container {{
+    height: 5px !important;
+  }}
+
+  /* Keep a full viewport content area between header and bottom controls. */
+  .question-section {{
+    top: 112px !important;
+    bottom: 82px !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }}
+
+  .question-card {{
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 18px 16px !important;
+    margin: 0 auto 18px !important;
+    border-radius: 18px !important;
+  }}
+
+  .question-number {{
+    font-size: 13px !important;
+    padding: 6px 12px !important;
+    margin-bottom: 14px !important;
+  }}
+
+  .question-reference {{
+    padding: 10px 12px !important;
+    margin-bottom: 12px !important;
+    font-size: 13px !important;
+  }}
+
+  .question-text {{
+    font-size: 17px !important;
+    line-height: 1.55 !important;
+    margin-bottom: 16px !important;
+  }}
+
+  .options-container {{
+    gap: 8px !important;
+  }}
+
+  .option-btn {{
+    padding: 11px 12px !important;
+    border-width: 2px !important;
+    border-radius: 12px !important;
+    font-size: 15px !important;
+    line-height: 1.45 !important;
+    gap: 9px !important;
+  }}
+
+  .option-indicator {{
+    min-width: 28px !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 13px !important;
+  }}
+
+  .option-text {{
+    padding-top: 2px !important;
+  }}
+
+  /* Fixed bottom navigation; no JS/function changes. */
+  .nav-controls {{
+    min-height: 70px !important;
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+  }}
+
+  .nav-btn {{
+    min-height: 52px !important;
+    padding: 10px 8px !important;
+    font-size: 14px !important;
+    border-radius: 10px !important;
+    gap: 5px !important;
+  }}
+
+  .question-nav-toggle {{
+    width: 46px !important;
+    height: 46px !important;
+    right: 12px !important;
+    bottom: 88px !important;
+    font-size: 18px !important;
+  }}
+
+  .question-nav-panel {{
+    max-height: 72dvh !important;
+    padding: 14px !important;
+  }}
+
+  .nav-panel-header {{
+    margin-bottom: 12px !important;
+    padding-bottom: 10px !important;
+  }}
+
+  .nav-panel-title {{
+    font-size: 16px !important;
+  }}
+
+  .nav-legend {{
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+    font-size: 11px !important;
+  }}
+
+  .legend-box {{
+    width: 16px !important;
+    height: 16px !important;
+  }}
+
+  .question-grid {{
+    gap: 7px !important;
+  }}
+
+  .question-nav-item {{
+    font-size: 13px !important;
+    border-radius: 8px !important;
+    border-width: 1.5px !important;
+  }}
+
+  #resultsContainer {{
+    height: 100dvh !important;
+    padding: 12px !important;
+  }}
+
+  .results-header {{
+    padding: 24px 14px !important;
+    margin-bottom: 12px !important;
+  }}
+
+  .results-icon {{
+    font-size: 58px !important;
+    margin-bottom: 10px !important;
+  }}
+
+  .results-title {{
+    font-size: 24px !important;
+  }}
+
+  .results-score {{
+    font-size: 42px !important;
+  }}
+
+  .results-percentage {{
+    font-size: 17px !important;
+  }}
+
+  .stat-card {{
+    padding: 16px !important;
+  }}
+
+  .stat-value {{
+    font-size: 28px !important;
+  }}
+
+  .action-btn {{
+    padding: 14px !important;
+    font-size: 15px !important;
+  }}
 }}
- const item=store[parseInt(idx)];
+
+/* Very small phones */
+@media (max-width: 390px) {{
+  .quiz-header {{
+    padding: 8px 9px !important;
+  }}
+
+  .quiz-title-text {{
+    max-width: 125px !important;
+  }}
+
+  .timer-display {{
+    padding: 6px 8px !important;
+    font-size: 13px !important;
+  }}
+
+  .question-section {{
+    top: 105px !important;
+    bottom: 78px !important;
+    padding: 9px !important;
+  }}
+
+  .question-card {{
+    padding: 15px 13px !important;
+  }}
+
+  .question-text {{
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+  }}
+
+  .option-btn {{
+    padding: 10px !important;
+    font-size: 14px !important;
+  }}
+
+  .nav-controls {{
+    min-height: 68px !important;
+    padding: 7px 8px !important;
+    gap: 6px !important;
+  }}
+
+  .nav-btn {{
+    min-height: 50px !important;
+    font-size: 13px !important;
+  }}
+}}
+
+</style>
+</head>
+<body>
+<div id="modeSelection">
+<div class="mode-container">
+<div class="mode-header">
+<div class="mode-header-icon"><i class="fas fa-graduation-cap"></i></div>
+<h2>{quiz_name_esc}</h2>
+<p>Choose your preferred test mode</p>
+</div>
+<div class="mode-cards">
+<div class="mode-card exam-mode" data-mode="exam">
+<div class="mode-card-header">
+<div class="mode-icon"><i class="fas fa-file-alt"></i></div>
+<div class="mode-info">
+<h3>Exam Mode</h3>
+<p>Complete all questions, results shown after submission</p>
+</div>
+</div>
+</div>
+<div class="mode-card practice-mode" data-mode="practice">
+<div class="mode-card-header">
+<div class="mode-icon"><i class="fas fa-book-open"></i></div>
+<div class="mode-info">
+<h3>Practice Mode</h3>
+<p>Instant feedback with detailed explanations</p>
+</div>
+</div>
+</div>
+</div>
+<div class="timer-config">
+<label for="ct"><i class="fas fa-clock"></i> Custom Timer (minutes)</label>
+<input type="number" id="ct" class="timer-input" placeholder="Default: {int(total_time / 60)} minutes" min="1" max="300"/>
+</div>
+<button class="start-btn" id="sb" disabled><i class="fas fa-play-circle"></i><span>Start Quiz</span></button>
+</div>
+</div>
+<div id="quizContainer">
+<div class="quiz-header">
+<div class="header-top">
+<div class="quiz-title">
+<i class="fas fa-clipboard-list"></i>
+<span class="quiz-title-text" title="{quiz_name_esc}">{quiz_name_esc}</span>
+<span class="mode-badge" id="mb"></span>
+</div>
+<div class="header-actions">
+<button class="theme-toggle" id="tt" title="Toggle Dark Mode"><i class="fas fa-moon"></i></button>
+<div class="timer-display" id="td"><i class="fas fa-clock"></i><span id="tt2">00:00</span></div>
+</div>
+</div>
+<div class="header-progress">
+<span id="pt">Question 1 of {n_questions}</span>
+<span id="at">Attempted: 0/{n_questions}</span>
+</div>
+<div class="progress-bar-container"><div class="progress-bar" id="pb"></div></div>
+</div>
+<div class="question-section scrollable" id="qs"></div>
+<div class="nav-controls">
+<button class="nav-btn secondary" id="pv"><i class="fas fa-chevron-left"></i>Previous</button>
+<button class="nav-btn secondary" id="mk"><i class="fas fa-bookmark"></i>Mark</button>
+<button class="nav-btn primary" id="nx">Next<i class="fas fa-chevron-right"></i></button>
+<button class="nav-btn primary" id="sm" style="display:none"><i class="fas fa-paper-plane"></i>Submit</button>
+</div>
+<button class="question-nav-toggle" id="nt"><i class="fas fa-th"></i></button>
+<div class="question-nav-panel" id="np">
+<div class="nav-panel-header">
+<h3 class="nav-panel-title"><i class="fas fa-map-marked-alt"></i> Question Navigator</h3>
+<button class="nav-close-btn" id="nc"><i class="fas fa-times"></i></button>
+</div>
+<div class="nav-legend">
+<div class="legend-item"><div class="legend-box answered"></div><span>Answered</span></div>
+<div class="legend-item"><div class="legend-box marked"></div><span>Marked</span></div>
+<div class="legend-item"><div class="legend-box unanswered"></div><span>Not Answered</span></div>
+</div>
+<div class="question-grid" id="qg"></div>
+</div>
+</div>
+<div id="resultsContainer">
+<div class="results-header">
+<div class="results-icon" id="ri"></div>
+<h2 class="results-title" id="rt"></h2>
+<div class="results-score" id="rs"></div>
+<div class="results-percentage" id="rp"></div>
+</div>
+<div class="stats-grid">
+<div class="stat-card"><div class="stat-icon correct"><i class="fas fa-check"></i></div><div class="stat-value" id="cc">0</div><div class="stat-label">Correct</div></div>
+<div class="stat-card"><div class="stat-icon incorrect"><i class="fas fa-times"></i></div><div class="stat-value" id="ic">0</div><div class="stat-label">Incorrect</div></div>
+<div class="stat-card"><div class="stat-icon unattempted"><i class="fas fa-minus"></i></div><div class="stat-value" id="uc">0</div><div class="stat-label">Unattempted</div></div>
+<div class="stat-card"><div class="stat-icon negative"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-value" id="nm">0</div><div class="stat-label">Negative Marks</div></div>
+</div>
+<div class="action-buttons">
+<button class="action-btn primary" id="rb"><i class="fas fa-search"></i>Review Answers</button>
+<button class="action-btn secondary" id="rsb"><i class="fas fa-redo"></i>Restart Quiz</button>
+</div>
+</div>
+<script>
+const qd={{q:[{questions_js}],m:null,tt:{total_time},nm:{negative_marks}}},
+st={{cq:0,a:Array(qd.q.length).fill(null),mk:Array(qd.q.length).fill(false),tr:qd.tt,ti:null,sb:false,rv:false,th:'light'}};
+if(window.marked){{marked.setOptions({{gfm:true,breaks:true}})}}
+function renderContent(text,inline){{
+    if(text===undefined||text===null||text==='')return '';
+    let t=String(text);
+    const store=[];
+    const stash=(expr,display)=>{{store.push({{expr:expr.trim(),display}});return '@@MATHPH'+(store.length-1)+'@@'}};
+    t=t.replace(/\\$\\$([\\s\\S]+?)\\$\\$/g,(m,e,off,str)=>{{
+        const bLine=str.slice(0,off).split('\\n').pop();
+        const aLine=str.slice(off+m.length).split('\\n')[0];
+        const isBlock=e.indexOf('\\n')>=0||(/^\\s*$/.test(bLine)&&/^\\s*$/.test(aLine));
+        return stash(e,isBlock);
+    }});
+    t=t.replace(/(?<!\\\\)\\$(?!\\s|\\$)([^$\\n]+?)(?<!\\s)\\$(?!\\d)/g,(m,e)=>stash(e,false));
+    t=t.replace(/(?<!=)==(?!=|\\s)([^=\\n]+?)(?<!\\s)==(?!=)/g,(m,e)=>'<mark>'+e+'</mark>');
+    let html;
+    try{{
+        html=inline?marked.parseInline(t):marked.parse(t);
+    }}catch(e){{
+        html=t.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }}
+    html=html.replace(/@@MATHPH(\\d+)@@/g,(m,idx)=>{{
+        const item=store[parseInt(idx)];
         if(!item)return m;
         try{{
             return katex.renderToString(item.expr,{{displayMode:item.display,throwOnError:false,strict:false}});
