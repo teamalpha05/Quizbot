@@ -610,6 +610,188 @@ def _page_shell(*, title: str, extra_head: str, body: str, extra_scripts: str) -
   }}
 }}
 
+
+/* FINAL COMPACT MOBILE LAYOUT - UI ONLY */
+@media (max-width: 767px) {{
+  html, body {{
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+  }}
+  #quizContainer {{
+    height: 100dvh;
+    min-height: 100dvh;
+  }}
+  .quiz-header {{
+    height: 106px;
+    padding: 8px 10px 7px;
+  }}
+  .header-top {{
+    margin-bottom: 7px;
+    gap: 6px;
+  }}
+  .quiz-title {{ font-size: 13px; gap: 5px; }}
+  .quiz-title-text {{ max-width: 150px; }}
+  .mode-badge {{ font-size: 8px; padding: 3px 6px; }}
+  .header-actions {{ gap: 5px; }}
+  .theme-toggle {{ width: 34px; height: 34px; font-size: 15px; }}
+  .timer-display {{
+    min-width: 92px;
+    height: 38px;
+    padding: 5px 9px;
+    gap: 5px;
+    font-size: 14px;
+    border-radius: 9px;
+  }}
+  .header-progress {{ font-size: 10px; margin-bottom: 5px; }}
+  .progress-bar-container {{ height: 4px; }}
+
+  .question-section {{
+    top: 106px;
+    bottom: 86px;
+    padding: 8px 8px 12px;
+  }}
+  .question-card {{
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 14px;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.05);
+  }}
+  .question-number {{
+    font-size: 12px;
+    padding: 5px 10px;
+    gap: 5px;
+    margin-bottom: 10px;
+  }}
+  .question-reference {{
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    line-height: 1.4;
+  }}
+  .question-text {{
+    font-size: 17px;
+    line-height: 1.48;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }}
+  .options-container {{ gap: 7px; }}
+  .option-btn {{
+    min-height: 52px;
+    padding: 9px 10px;
+    border-width: 2px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.35;
+    gap: 9px;
+  }}
+  .option-indicator {{
+    min-width: 28px;
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }}
+  .option-text {{ padding-top: 2px; }}
+  .explanation-box {{ padding: 10px; margin-top: 10px; }}
+  .explanation-header {{ font-size: 12px; margin-bottom: 6px; }}
+  .explanation-text {{ font-size: 12px; line-height: 1.45; }}
+
+  /* Fixed 2 x 2 navigation; never scrolls away */
+  .nav-controls {{
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 86px;
+    padding: 5px 7px calc(5px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 5px;
+    z-index: 999;
+    background: var(--bg-white);
+    box-shadow: 0 -2px 12px rgba(0,0,0,.10);
+  }}
+  .nav-btn {{
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    padding: 5px 6px;
+    border-radius: 9px;
+    font-size: 12px;
+    line-height: 1.05;
+    gap: 5px;
+  }}
+  .nav-btn i {{ font-size: 11px; }}
+  .question-nav-toggle {{
+    right: 10px;
+    bottom: 94px;
+    width: 42px;
+    height: 42px;
+    font-size: 17px;
+    z-index: 90;
+  }}
+  .question-nav-panel {{
+    max-height: 72dvh;
+    padding: 12px;
+    border-radius: 16px 16px 0 0;
+  }}
+  .nav-panel-header {{ margin-bottom: 10px; padding-bottom: 8px; }}
+  .nav-panel-title {{ font-size: 14px; }}
+  .nav-legend {{ gap: 7px; margin-bottom: 10px; font-size: 10px; }}
+  .legend-box {{ width: 14px; height: 14px; border-radius: 4px; }}
+  .question-grid {{ grid-template-columns: repeat(6, 1fr); gap: 5px; }}
+  .question-nav-item {{
+    border-width: 1px;
+    border-radius: 7px;
+    font-size: 11px;
+  }}
+
+  /* Compact start screen */
+  #modeSelection {{ padding: 10px; }}
+  .mode-container {{
+    max-width: 430px;
+    padding: 18px 14px;
+    border-radius: 18px;
+  }}
+  .mode-header {{ margin-bottom: 15px; }}
+  .mode-header-icon {{ width: 50px; height: 50px; font-size: 25px; border-radius: 14px; margin-bottom: 8px; }}
+  .mode-header h2 {{ font-size: 19px; margin-bottom: 4px; }}
+  .mode-header p {{ font-size: 11px; }}
+  .mode-cards {{ gap: 8px; margin-bottom: 12px; }}
+  .mode-card {{ padding: 11px; border-radius: 11px; border-width: 1px; }}
+  .mode-icon {{ width: 38px; height: 38px; border-radius: 10px; font-size: 17px; margin-right: 10px; }}
+  .mode-info h3 {{ font-size: 14px; margin-bottom: 2px; }}
+  .mode-info p {{ font-size: 10px; }}
+  .timer-config {{ margin-bottom: 12px; }}
+  .timer-config label {{ font-size: 11px; margin-bottom: 5px; }}
+  .timer-input {{ padding: 9px 10px; border-radius: 9px; font-size: 12px; }}
+  .start-btn {{ padding: 11px; border-radius: 10px; font-size: 13px; }}
+
+  /* Compact result screen */
+  #resultsContainer {{ padding: 10px; }}
+  .results-header {{ padding: 18px 10px; border-radius: 14px; margin-bottom: 10px; }}
+  .results-icon {{ font-size: 48px; margin-bottom: 8px; }}
+  .results-title {{ font-size: 21px; margin-bottom: 5px; }}
+  .results-score {{ font-size: 36px; margin-bottom: 5px; }}
+  .results-percentage {{ font-size: 14px; }}
+  .stats-grid {{ gap: 6px; margin-bottom: 10px; }}
+  .stat-card {{ padding: 11px 7px; border-radius: 10px; }}
+  .stat-icon {{ width: 30px; height: 30px; border-radius: 8px; font-size: 14px; margin-bottom: 5px; }}
+  .stat-value {{ font-size: 22px; margin-bottom: 2px; }}
+  .stat-label {{ font-size: 10px; }}
+  .action-buttons {{ gap: 7px; }}
+  .action-btn {{ padding: 11px; border-radius: 9px; font-size: 12px; }}
+  .result-filters {{ gap: 5px; margin-bottom: 8px; }}
+  .filter-btn {{ padding: 7px 8px; font-size: 10px; }}
+  .review-card {{ padding: 11px; border-radius: 11px; }}
+  .review-question {{ font-size: 13px; line-height: 1.45; }}
+  .answer-line {{ padding: 7px 8px; font-size: 11px; }}
+}}
+
 </style>
 </head>
 <body>
