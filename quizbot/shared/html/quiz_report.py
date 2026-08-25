@@ -1308,6 +1308,126 @@ body{{font-family:'Poppins',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .action-btn.secondary{{background:var(--bg-white);color:var(--text-dark);border:2px solid var(--border)}}
 .action-btn:hover{{transform:translateY(-2px)}}
 {_QUIZ_DESKTOP_CSS}
+
+/* ------------------------------------------------------------------
+   Compact CBT navigation + result analysis UI
+   ------------------------------------------------------------------ */
+.nav-controls {{
+  gap: 8px;
+  padding: 10px 12px;
+  flex-wrap: wrap;
+}}
+.nav-btn {{
+  min-height: 46px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.15;
+}}
+.nav-btn.review-btn {{
+  background: #f59e0b;
+  color: #fff;
+  border: 1px solid #f59e0b;
+}}
+.nav-btn.clear-btn {{
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}}
+.nav-btn.submit-btn {{
+  background: #dc2626;
+  color: #fff;
+  border: 1px solid #dc2626;
+}}
+.nav-btn.primary {{ background: #16a34a; }}
+.nav-btn.primary:hover:not(:disabled) {{ background: #15803d; }}
+.question-nav-item.answered {{
+  background: #16b968 !important;
+  border-color: #16b968 !important;
+  color: #fff !important;
+}}
+.question-nav-item.marked {{
+  background: #f5ad13 !important;
+  border-color: #f5ad13 !important;
+  color: #111827 !important;
+}}
+.question-nav-item.unanswered {{
+  background: #3b8eea !important;
+  border-color: #3b8eea !important;
+  color: #fff !important;
+}}
+.question-nav-item.current {{
+  outline: 3px solid rgba(79,70,229,.22);
+  outline-offset: 1px;
+}}
+.legend-box.answered {{ background: #16b968 !important; }}
+.legend-box.marked {{ background: #f5ad13 !important; }}
+.legend-box.unanswered {{ background: #3b8eea !important; }}
+
+.result-filters {{
+  max-width: 980px;
+  margin: 0 auto 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}}
+.filter-btn {{
+  border: 1px solid var(--border);
+  background: var(--bg-white);
+  color: var(--text-dark);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font: 600 13px 'Poppins', sans-serif;
+  cursor: pointer;
+  transition: .2s ease;
+}}
+.filter-btn.active {{
+  background: #172235;
+  color: #fff;
+  border-color: #172235;
+}}
+.correct-filter.active {{ background: #16a34a; border-color:#16a34a; }}
+.wrong-filter.active {{ background: #dc2626; border-color:#dc2626; }}
+.unanswered-filter.active {{ background: #3b82f6; border-color:#3b82f6; }}
+.review-summary {{
+  max-width: 980px;
+  margin: 0 auto 12px;
+  color: var(--text-light);
+  font-size: 13px;
+}}
+.review-list {{
+  max-width: 980px;
+  margin: 0 auto 18px;
+  display: grid;
+  gap: 12px;
+}}
+.review-card {{
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 3px 14px rgba(0,0,0,.05);
+}}
+.review-card.correct-card {{ border-left: 5px solid #16a34a; }}
+.review-card.wrong-card {{ border-left: 5px solid #dc2626; }}
+.review-card.unanswered-card {{ border-left: 5px solid #3b82f6; }}
+.review-qno {{ font-weight: 800; color: var(--primary); margin-bottom: 9px; }}
+.review-question {{ font-size: 15px; font-weight: 600; line-height: 1.55; margin-bottom: 12px; }}
+.answer-line {{ margin-top: 7px; padding: 9px 11px; border-radius: 9px; font-size: 13px; line-height: 1.45; }}
+.answer-line.your {{ background: #fff0f0; color: #b91c1c; }}
+.answer-line.correct {{ background: #eaf8ef; color: #15803d; }}
+.answer-line.neutral {{ background: #eef6ff; color: #1d4ed8; }}
+.answer-line.explain {{ background: #fff8dc; color: #8a5a00; }}
+.answer-label {{ font-weight: 800; }}
+
+@media (max-width: 700px) {{
+  .nav-controls {{ gap: 6px; padding: 8px; }}
+  .nav-btn {{ flex: 1 1 calc(50% - 6px); min-width: 0; padding: 9px 7px; font-size: 11px; }}
+  .nav-btn i {{ font-size: 12px; }}
+  .result-filters {{ gap: 6px; }}
+  .filter-btn {{ flex: 1 1 calc(50% - 6px); padding: 8px 7px; font-size: 11px; }}
+  .review-card {{ padding: 14px; }}
+}}
 </style>
 </head>
 <body>
@@ -1366,10 +1486,11 @@ body{{font-family:'Poppins',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 </div>
 <div class="question-section scrollable" id="qs"></div>
 <div class="nav-controls">
-<button class="nav-btn secondary" id="pv"><i class="fas fa-chevron-left"></i>Previous</button>
-<button class="nav-btn secondary" id="mk"><i class="fas fa-bookmark"></i>Mark</button>
-<button class="nav-btn primary" id="nx">Next<i class="fas fa-chevron-right"></i></button>
-<button class="nav-btn primary" id="sm" style="display:none"><i class="fas fa-paper-plane"></i>Submit</button>
+<button class="nav-btn secondary" id="pv"><i class="fas fa-chevron-left"></i><span>Previous</span></button>
+<button class="nav-btn review-btn" id="mk"><i class="fas fa-bookmark"></i><span>Mark for Review</span></button>
+<button class="nav-btn clear-btn" id="cr"><i class="fas fa-eraser"></i><span>Clear Response</span></button>
+<button class="nav-btn primary" id="nx"><i class="fas fa-save"></i><span>Save &amp; Next</span></button>
+<button class="nav-btn submit-btn" id="sm" style="display:none"><i class="fas fa-paper-plane"></i><span>Submit</span></button>
 </div>
 <button class="question-nav-toggle" id="nt"><i class="fas fa-th"></i></button>
 <div class="question-nav-panel" id="np">
@@ -1398,9 +1519,17 @@ body{{font-family:'Poppins',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 <div class="stat-card"><div class="stat-icon unattempted"><i class="fas fa-minus"></i></div><div class="stat-value" id="uc">0</div><div class="stat-label">Unattempted</div></div>
 <div class="stat-card"><div class="stat-icon negative"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-value" id="nm">0</div><div class="stat-label">Negative Marks</div></div>
 </div>
+<div class="result-filters" id="resultFilters">
+<button class="filter-btn active" data-filter="all"><i class="fas fa-list"></i><span>All Questions</span></button>
+<button class="filter-btn correct-filter" data-filter="correct"><i class="fas fa-check"></i><span>Correct</span></button>
+<button class="filter-btn wrong-filter" data-filter="wrong"><i class="fas fa-times"></i><span>Incorrect</span></button>
+<button class="filter-btn unanswered-filter" data-filter="unanswered"><i class="far fa-circle"></i><span>Not Answered</span></button>
+</div>
+<div class="review-summary" id="reviewSummary"></div>
+<div class="review-list" id="reviewList"></div>
 <div class="action-buttons">
-<button class="action-btn primary" id="rb"><i class="fas fa-search"></i>Review Answers</button>
-<button class="action-btn secondary" id="rsb"><i class="fas fa-redo"></i>Restart Quiz</button>
+<button class="action-btn secondary" id="rb"><i class="fas fa-list-check"></i>Review Answers</button>
+<button class="action-btn primary" id="rsb"><i class="fas fa-redo"></i>Restart Quiz</button>
 </div>
 </div>
 <script>
@@ -1449,11 +1578,13 @@ function stt(){{utd();st.ti=setInterval(()=>{{st.tr--;utd();if(st.tr<=0){{clearI
 function utd(){{const m=Math.floor(st.tr/60),s=st.tr%60;document.getElementById('tt2').textContent=`${{String(m).padStart(2,'0')}}:${{String(s).padStart(2,'0')}}`}}
 function rq(i){{st.cq=i;const q=qd.q[i],qs=document.getElementById('qs');let h=`<div class="question-card"><div class="question-number"><i class="fas fa-question-circle"></i>Question ${{i+1}} of ${{qd.q.length}}</div>`;if(q.ref)h+=`<div class="question-reference protected-content"><i class="fas fa-info-circle"></i> ${{renderContent(q.ref,true)}}</div>`;h+=`<div class="question-text protected-content">${{renderContent(q.txt)}}</div><div class="options-container">`;q.opts.forEach((o,x)=>{{let bc='option-btn',ic=String.fromCharCode(65+x);const isSel=st.a[i]===x,isCor=x===q.ci,shAns=(qd.m==='practice'&&st.a[i]!==null)||st.sb;if(isSel)bc+=' selected';if(shAns){{bc+=' disabled';if(isCor){{bc+=' correct';ic='<i class="fas fa-check"></i>'}}else if(isSel&&!isCor){{bc+=' incorrect';ic='<i class="fas fa-times"></i>'}}}}h+=`<button class="${{bc}}" data-index="${{x}}" onclick="so(${{x}})"><div class="option-indicator">${{ic}}</div><div class="option-text protected-content">${{renderContent(o,true)}}</div></button>`}});h+=`</div>`;const shExp=(qd.m==='practice'&&st.a[i]!==null)||st.sb;if(shExp)h+=`<div class="explanation-box" style="display:block"><div class="explanation-header"><i class="fas fa-lightbulb"></i>Explanation</div><div class="explanation-text protected-content">${{renderContent(q.exp)}}</div></div>`;h+=`</div>`;qs.innerHTML=h;qs.scrollTop=0;up();unb();uqg()}}
 function so(oi){{if(st.sb)return;if(st.a[st.cq]===oi){{st.a[st.cq]=null}}else{{st.a[st.cq]=oi}}rq(st.cq)}}
-function sn(){{document.getElementById('pv').addEventListener('click',np);document.getElementById('nx').addEventListener('click',nn);document.getElementById('mk').addEventListener('click',tm);document.getElementById('sm').addEventListener('click',cs);document.getElementById('nt').addEventListener('click',tnp);document.getElementById('nc').addEventListener('click',tnp);document.getElementById('rb').addEventListener('click',ra);document.getElementById('rsb').addEventListener('click',rs);document.getElementById('tt').addEventListener('click',tgt);document.addEventListener('keydown',e=>{{if(st.sb)return;if(e.key==='ArrowLeft')np();if(e.key==='ArrowRight')nn()}})}}
+function sn(){{document.getElementById('pv').addEventListener('click',np);document.getElementById('nx').addEventListener('click',saveNext);document.getElementById('mk').addEventListener('click',tm);document.getElementById('cr').addEventListener('click',clearResponse);document.getElementById('sm').addEventListener('click',cs);document.getElementById('nt').addEventListener('click',tnp);document.getElementById('nc').addEventListener('click',tnp);document.getElementById('rb').addEventListener('click',()=>renderReview('all'));document.getElementById('rsb').addEventListener('click',rs);document.getElementById('tt').addEventListener('click',tgt);document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>renderReview(b.dataset.filter)));document.addEventListener('keydown',e=>{{if(st.sb)return;if(e.key==='ArrowLeft')np();if(e.key==='ArrowRight')saveNext()}})}}
 function np(){{if(st.cq>0)rq(st.cq-1)}}
 function nn(){{if(st.cq<qd.q.length-1)rq(st.cq+1)}}
-function tm(){{st.mk[st.cq]=!st.mk[st.cq];uqg();const mb=document.getElementById('mk');mb.innerHTML=st.mk[st.cq]?'<i class="fas fa-bookmark"></i> Unmark':'<i class="fas fa-bookmark"></i> Mark'}}
-function unb(){{document.getElementById('pv').disabled=st.cq===0;if(st.cq===qd.q.length-1){{document.getElementById('nx').style.display='none';document.getElementById('sm').style.display='flex'}}else{{document.getElementById('nx').style.display='flex';document.getElementById('sm').style.display='none'}}const mb=document.getElementById('mk');mb.innerHTML=st.mk[st.cq]?'<i class="fas fa-bookmark"></i> Unmark':'<i class="fas fa-bookmark"></i> Mark'}}
+function saveNext(){{if(st.sb)return;if(st.cq<qd.q.length-1){{rq(st.cq+1)}}else{{cs()}}}}
+function clearResponse(){{if(st.sb)return;st.a[st.cq]=null;rq(st.cq)}}
+function tm(){{st.mk[st.cq]=!st.mk[st.cq];uqg();const mb=document.getElementById('mk');mb.innerHTML=st.mk[st.cq]?'<i class="fas fa-bookmark"></i><span>Unmark Review</span>':'<i class="fas fa-bookmark"></i><span>Mark for Review</span>'}}
+function unb(){{document.getElementById('pv').disabled=st.cq===0;if(st.cq===qd.q.length-1){{document.getElementById('nx').style.display='none';document.getElementById('sm').style.display='flex'}}else{{document.getElementById('nx').style.display='flex';document.getElementById('sm').style.display='none'}}const mb=document.getElementById('mk');mb.innerHTML=st.mk[st.cq]?'<i class="fas fa-bookmark"></i><span>Unmark Review</span>':'<i class="fas fa-bookmark"></i><span>Mark for Review</span>';}}
 function up(){{const at=st.a.filter(a=>a!==null).length,pr=((st.cq+1)/qd.q.length)*100;document.getElementById('pt').textContent=`Question ${{st.cq+1}} of ${{qd.q.length}}`;document.getElementById('at').textContent=`Attempted: ${{at}}/${{qd.q.length}}`;document.getElementById('pb').style.width=pr+'%'}}
 function rqg(){{const g=document.getElementById('qg');g.innerHTML='';qd.q.forEach((_,i)=>{{const it=document.createElement('div');it.className='question-nav-item';it.textContent=i+1;it.onclick=()=>{{rq(i);if(window.innerWidth<768)tnp()}};g.appendChild(it)}})}}
 function uqg() {{
@@ -1465,15 +1596,17 @@ function uqg() {{
             if (st.a[i] === qd.q[i].ci) it.classList.add('correct');
             else if (st.a[i] !== null) it.classList.add('incorrect');
         }} else {{
-            if (st.a[i] !== null) it.classList.add('answered');
             if (st.mk[i]) it.classList.add('marked');
+            else if (st.a[i] !== null) it.classList.add('answered');
+            else it.classList.add('unanswered');
         }}
     }});
 }}
 function tnp(){{document.getElementById('np').classList.toggle('open')}}
 function cs(){{const u=st.a.filter(a=>a===null).length;if(u>0){{const c=window.confirm(`You have ${{u}} unattempted question(s). Do you want to submit?`);if(!c)return}}sbq()}}
-function sbq(){{clearInterval(st.ti);st.sb=true;let c=0,ic=0,u=0,nm=0;st.a.forEach((a,i)=>{{if(a===null)u++;else if(a===qd.q[i].ci)c++;else{{ic++;nm+=qd.nm}}}});const ts=c-nm,pc=(ts/qd.q.length)*100;document.body.style.overflow='auto';document.getElementById('quizContainer').style.display='none';document.getElementById('resultsContainer').style.display='block';document.getElementById('resultsContainer').classList.add('scrollable');if(pc>=70){{document.getElementById('ri').innerHTML='<i class="fas fa-trophy" style="color:#fbbf24"></i>';document.getElementById('rt').textContent='Excellent Performance!'}}else if(pc>=50){{document.getElementById('ri').innerHTML='<i class="far fa-smile" style="color:#48bb78"></i>';document.getElementById('rt').textContent='Good Job!'}}else{{document.getElementById('ri').innerHTML='<i class="far fa-meh" style="color:#f5576c"></i>';document.getElementById('rt').textContent='Keep Practicing!'}}document.getElementById('rs').textContent=ts.toFixed(2)+' / '+qd.q.length;document.getElementById('rp').textContent=pc.toFixed(1)+'%';document.getElementById('cc').textContent=c;document.getElementById('ic').textContent=ic;document.getElementById('uc').textContent=u;document.getElementById('nm').textContent='-'+nm.toFixed(2)}}
-function ra(){{st.rv=true;document.body.style.overflow='hidden';document.getElementById('resultsContainer').style.display='none';document.getElementById('quizContainer').style.display='block';rq(0);uqg()}}
+function sbq(){{clearInterval(st.ti);st.sb=true;let c=0,ic=0,u=0,nm=0;st.a.forEach((a,i)=>{{if(a===null)u++;else if(a===qd.q[i].ci)c++;else{{ic++;nm+=qd.nm}}}});const ts=c-nm,pc=(ts/qd.q.length)*100;document.body.style.overflow='auto';document.getElementById('quizContainer').style.display='none';document.getElementById('resultsContainer').style.display='block';document.getElementById('resultsContainer').classList.add('scrollable');if(pc>=70){{document.getElementById('ri').innerHTML='<i class="fas fa-trophy" style="color:#fbbf24"></i>';document.getElementById('rt').textContent='Excellent Performance!'}}else if(pc>=50){{document.getElementById('ri').innerHTML='<i class="far fa-smile" style="color:#48bb78"></i>';document.getElementById('rt').textContent='Good Job!'}}else{{document.getElementById('ri').innerHTML='<i class="far fa-meh" style="color:#f5576c"></i>';document.getElementById('rt').textContent='Keep Practicing!'}}document.getElementById('rs').textContent=ts.toFixed(2)+' / '+qd.q.length;document.getElementById('rp').textContent=pc.toFixed(1)+'%';document.getElementById('cc').textContent=c;document.getElementById('ic').textContent=ic;document.getElementById('uc').textContent=u;document.getElementById('nm').textContent='-'+nm.toFixed(2);renderReview('all')}}
+function renderReview(filter){{const list=document.getElementById('reviewList');if(!list)return;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter===filter));let html='',shown=0;qd.q.forEach((q,i)=>{{const a=st.a[i];const type=a===null?'unanswered':(a===q.ci?'correct':'wrong');if(filter!=='all'&&filter!==type)return;shown++;const cardClass=type==='correct'?'correct-card':type==='wrong'?'wrong-card':'unanswered-card';const qText=renderContent(q.txt);let your='Not Answered';if(a!==null)your=renderContent(q.opts[a],true);const correct=renderContent(q.opts[q.ci],true);html+=`<div class="review-card ${{cardClass}}"><div class="review-qno">Question ${{i+1}}</div><div class="review-question protected-content">${{qText}}</div>${{a===null?'<div class="answer-line neutral"><span class="answer-label">Your Answer:</span> Not Answered</div>':'<div class="answer-line your"><span class="answer-label">Your Answer:</span> '+your+'</div>'}}<div class="answer-line correct"><span class="answer-label">Correct Answer:</span> ${{correct}}</div>${{q.exp?'<div class="answer-line explain"><span class="answer-label">Explanation:</span> '+renderContent(q.exp)+'</div>':''}}</div>`}});document.getElementById('reviewSummary').textContent=shown+' question(s) shown';list.innerHTML=html||'<div class="review-card">No questions in this category.</div>';list.scrollIntoView({{behavior:'smooth',block:'start'}})}}
+function ra(){{renderReview('all')}}
 function rs(){{document.body.style.overflow='hidden';location.reload()}}
 </script>
 </body>
