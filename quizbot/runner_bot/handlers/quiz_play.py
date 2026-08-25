@@ -1250,9 +1250,10 @@ async def start_quiz(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 
         if not ctx.args:
             welcome = (
-                "\U0001F44B Welcome to <b>Advance Quiz Bot</b>!\n\n"
-                "Create quizzes with MCQs, sections, timers, and more.\n\n"
-                "Use /help to learn usage!"
+    "👋 Welcome to <b>Advance Quiz Bot</b>!\n\n"
+    "Create quizzes with MCQs, sections, timers, and more.\n\n"
+    "Use /help to learn usage!\n\n"
+    "📢 Join Our Channel: @Alpha_World"
             )
             await safe_send_message(ctx, chat_id, welcome, parse_mode=ParseMode.HTML)
             return
