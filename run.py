@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """
 Advance Quiz Bot — Open Source Project
-This project was originally developed by Gagan (github.com/devgaganin).
-Reference: https://t.me/advance_quiz_bot
-The codebase has been reviewed and verified with the assistance of Claude AI.
+Render-compatible launcher with Telegram bots + HTTP health server.
 """
 
 from __future__ import annotations
@@ -11,8 +9,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import os
 import signal
 import sys
+
+from aiohttp import web
 
 from quizbot.database import init_db, close_db
 from quizbot.shared import config
@@ -22,11 +23,47 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
+
 logger = logging.getLogger("launcher")
 
 # Silence noisy third-party debug logs by default.
 for noisy in ("httpx", "httpcore", "apscheduler", "pymongo"):
     logging.getLogger(noisy).setLevel(logging.WARNING)
+
+
+async def health(request):
+    return web.Response(
+        text="Quiz Bot is running!",
+        status=200,
+        content_type="text/plain",
+    )
+
+
+async def start_health_server():
+    """
+    Small HTTP server required by Render Web Service.
+    Render provides the PORT environment variable.
+    """
+    port = int(os.environ.get("PORT", "8080"))
+
+    app = web.Application()
+    app.router.add_get("/", health)
+    app.router.add_get("/health", health)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    site = web.TCPSite(
+        runner,
+        host="0.0.0.0",
+        port=port,
+    )
+
+    await site.start()
+
+    logger.info("Render health server started on port %s", port)
+
+    return runner
 
 
 async def _run_creator_bot() -> None:
@@ -51,69 +88,146 @@ async def _run_mini_app() -> None:
 
 
 async def main(only: str | None) -> None:
+
     problems = config.validate(bot=only or "both")
+
     if problems:
         for p in problems:
             logger.error("Config problem: %s", p)
-        logger.error("Fix the above in your .env file (see .env.example) before starting.")
+
+        logger.error(
+            "Fix the above in your environment variables "
+            "(see .env.example)."
+        )
+
         sys.exit(1)
 
-    logger.info("Connecting to MongoDB (db=%s) ...", config.MONGODB_DB_NAME)
-    await init_db(config.MONGODB_URI, config.MONGODB_DB_NAME)
+    logger.info(
+        "Connecting to MongoDB (db=%s) ...",
+        config.MONGODB_DB_NAME,
+    )
+
+    await init_db(
+        config.MONGODB_URI,
+        config.MONGODB_DB_NAME,
+    )
+
     logger.info("Database ready.")
 
     tasks: list[asyncio.Task] = []
+
+    # Start Render HTTP server.
+    health_runner = await start_health_server()
+
+    # Start Creator Bot.
     if only in (None, "creator"):
-        tasks.append(asyncio.create_task(_run_creator_bot(), name="creator_bot"))
+        tasks.append(
+            asyncio.create_task(
+                _run_creator_bot(),
+                name="creator_bot",
+            )
+        )
+
+    # Start Runner Bot.
     if only in (None, "runner"):
-        tasks.append(asyncio.create_task(_run_runner_bot(), name="runner_bot"))
+        tasks.append(
+            asyncio.create_task(
+                _run_runner_bot(),
+                name="runner_bot",
+            )
+        )
+
+    # Mini App.
     if only == "miniapp":
-        tasks.append(asyncio.create_task(_run_mini_app(), name="mini_app"))
+        tasks.append(
+            asyncio.create_task(
+                _run_mini_app(),
+                name="mini_app",
+            )
+        )
+
     elif only is None and config.MINI_APP_DOMAIN:
-        tasks.append(asyncio.create_task(_run_mini_app(), name="mini_app"))
+        tasks.append(
+            asyncio.create_task(
+                _run_mini_app(),
+                name="mini_app",
+            )
+        )
 
     stop_event = asyncio.Event()
 
     def _handle_signal(*_args):
-        logger.info("Shutdown signal received, stopping bots...")
+        logger.info(
+            "Shutdown signal received, stopping bots..."
+        )
         stop_event.set()
 
     loop = asyncio.get_running_loop()
+
     for sig in (signal.SIGINT, signal.SIGTERM):
         try:
-            loop.add_signal_handler(sig, _handle_signal)
+            loop.add_signal_handler(
+                sig,
+                _handle_signal,
+            )
         except NotImplementedError:
-            pass  # Windows
+            pass
 
     try:
-        done, pending = await asyncio.wait(
-            [*tasks, asyncio.ensure_future(stop_event.wait())],
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-        for t in done:
-            if t.exception():
-                logger.exception("A bot task crashed:", exc_info=t.exception())
+
+        # Keep all services alive until Render sends a shutdown signal.
+        await stop_event.wait()
+
+    except asyncio.CancelledError:
+        logger.info("Main task cancelled.")
+
     finally:
+
         logger.info("Shutting down...")
-        for t in tasks:
-            if not t.done():
-                t.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
+
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+
+        await asyncio.gather(
+            *tasks,
+            return_exceptions=True,
+        )
+
+        await health_runner.cleanup()
+
         await close_session()
         await close_db()
+
         logger.info("Shutdown complete.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the Advance Quiz Bot platform.")
-    parser.add_argument(
-        "--only", choices=["creator", "runner", "miniapp"], default=None,
-        help="Run only one component (default: run both bots, plus the "
-             "Mini App server too if MINI_APP_DOMAIN is configured).",
+
+    parser = argparse.ArgumentParser(
+        description="Run the Advance Quiz Bot platform."
     )
+
+    parser.add_argument(
+        "--only",
+        choices=[
+            "creator",
+            "runner",
+            "miniapp",
+        ],
+        default=None,
+        help=(
+            "Run only one component "
+            "(default: run both bots)."
+        ),
+    )
+
     args = parser.parse_args()
 
     try:
-        asyncio.run(main(args.only))
+        asyncio.run(
+            main(args.only)
+        )
+
     except KeyboardInterrupt:
         pass
