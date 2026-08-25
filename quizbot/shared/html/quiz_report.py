@@ -338,460 +338,6 @@ def _page_shell(*, title: str, extra_head: str, body: str, extra_scripts: str) -
 {_FONT_AWESOME_LINK}
 <style>{_BASE_CSS}
 {extra_head}
-
-/* ------------------------------------------------------------------
-   MOBILE COMPACT UI
-   Visual-only sizing/layout changes. JavaScript and quiz functions
-   remain untouched.
-   ------------------------------------------------------------------ */
-@media (max-width: 700px) {{
-  body {{ overflow: hidden; }}
-
-  .quiz-header {{
-    padding: 8px 10px;
-  }}
-  .header-top {{
-    margin-bottom: 7px;
-    gap: 6px;
-  }}
-  .quiz-title {{
-    font-size: 13px;
-    gap: 5px;
-  }}
-  .quiz-title-text {{
-    max-width: 145px;
-  }}
-  .mode-badge {{
-    font-size: 8px;
-    padding: 3px 7px;
-  }}
-  .header-actions {{
-    gap: 5px;
-  }}
-  .theme-toggle {{
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    font-size: 14px;
-  }}
-  .timer-display {{
-    min-width: 82px;
-    justify-content: center;
-    gap: 5px;
-    padding: 6px 9px;
-    border-radius: 10px;
-    font-size: 14px;
-  }}
-  .header-progress {{
-    font-size: 10px;
-    margin-bottom: 5px;
-  }}
-  .progress-bar-container {{
-    height: 4px;
-  }}
-
-  .question-section {{
-    top: 94px;
-    bottom: 122px;
-    padding: 10px 9px;
-  }}
-  .question-card {{
-    max-width: none;
-    padding: 14px 12px;
-    border-radius: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.05);
-  }}
-  .question-number {{
-    font-size: 11px;
-    padding: 5px 9px;
-    gap: 5px;
-    border-radius: 16px;
-    margin-bottom: 10px;
-  }}
-  .question-reference {{
-    padding: 9px 10px;
-    border-left-width: 3px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    font-size: 12px;
-    line-height: 1.45;
-  }}
-  .question-text {{
-    font-size: 17px;
-    line-height: 1.48;
-    margin-bottom: 12px;
-  }}
-  .question-text p {{
-    margin-bottom: 7px;
-  }}
-  .question-text ul,
-  .question-text ol {{
-    margin: 5px 0 5px 18px;
-  }}
-
-  .options-container {{
-    gap: 7px;
-  }}
-  .option-btn {{
-    padding: 10px 11px;
-    border-width: 2px;
-    border-radius: 11px;
-    font-size: 15px;
-    line-height: 1.38;
-    gap: 9px;
-  }}
-  .option-indicator {{
-    min-width: 25px;
-    width: 25px;
-    height: 25px;
-    font-size: 12px;
-    border-width: 2px;
-  }}
-  .option-text {{
-    padding-top: 1px;
-  }}
-
-  .nav-controls {{
-    padding: 6px 8px 8px;
-    gap: 6px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    flex-wrap: nowrap;
-  }}
-  .nav-btn {{
-    width: 100%;
-    min-width: 0;
-    min-height: 48px;
-    padding: 7px 5px;
-    border-radius: 11px;
-    font-size: 12px;
-    line-height: 1.15;
-    gap: 5px;
-  }}
-  .nav-btn i {{
-    font-size: 12px;
-  }}
-
-  .question-nav-toggle {{
-    width: 44px;
-    height: 44px;
-    right: 10px;
-    bottom: 132px;
-    font-size: 17px;
-  }}
-  .question-nav-panel {{
-    padding: 12px;
-    max-height: 68vh;
-    border-radius: 18px 18px 0 0;
-  }}
-  .nav-panel-header {{
-    margin-bottom: 10px;
-    padding-bottom: 9px;
-    border-bottom-width: 1px;
-  }}
-  .nav-panel-title {{
-    font-size: 14px;
-  }}
-  .nav-close-btn {{
-    width: 28px;
-    height: 28px;
-    font-size: 13px;
-  }}
-  .nav-legend {{
-    gap: 7px;
-    margin-bottom: 10px;
-    font-size: 10px;
-  }}
-  .legend-box {{
-    width: 13px;
-    height: 13px;
-    border-radius: 4px;
-  }}
-  .question-grid {{
-    grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
-  }}
-  .question-nav-item {{
-    border-width: 1px;
-    border-radius: 8px;
-    font-size: 12px;
-  }}
-
-  #resultsContainer {{
-    padding: 10px;
-  }}
-  .results-header {{
-    padding: 18px 10px;
-    border-radius: 15px;
-    margin-bottom: 10px;
-  }}
-  .results-icon {{
-    font-size: 48px;
-    margin-bottom: 8px;
-  }}
-  .results-title {{
-    font-size: 22px;
-    margin-bottom: 6px;
-  }}
-  .results-score {{
-    font-size: 36px;
-    margin-bottom: 5px;
-  }}
-  .results-percentage {{
-    font-size: 15px;
-  }}
-  .stats-grid {{
-    grid-template-columns: repeat(2, 1fr);
-    gap: 7px;
-    margin-bottom: 10px;
-  }}
-  .stat-card {{
-    padding: 11px;
-    border-radius: 12px;
-  }}
-  .stat-icon {{
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    font-size: 14px;
-    margin-bottom: 6px;
-  }}
-  .stat-value {{
-    font-size: 23px;
-    margin-bottom: 2px;
-  }}
-  .stat-label {{
-    font-size: 10px;
-  }}
-  .result-filters {{
-    gap: 5px;
-    margin-bottom: 9px;
-  }}
-  .filter-btn {{
-    flex: 1 1 calc(50% - 5px);
-    padding: 7px 5px;
-    font-size: 10px;
-  }}
-  .review-summary {{
-    font-size: 11px;
-    margin-bottom: 8px;
-  }}
-  .review-list {{
-    gap: 7px;
-  }}
-  .review-card {{
-    padding: 11px;
-    border-radius: 11px;
-  }}
-  .review-qno {{
-    margin-bottom: 6px;
-    font-size: 12px;
-  }}
-  .review-question {{
-    font-size: 14px;
-    line-height: 1.45;
-    margin-bottom: 8px;
-  }}
-  .answer-line {{
-    margin-top: 5px;
-    padding: 7px 8px;
-    border-radius: 7px;
-    font-size: 11px;
-    line-height: 1.4;
-  }}
-  .action-buttons {{
-    gap: 7px;
-    margin-bottom: 8px;
-  }}
-  .action-btn {{
-    padding: 11px;
-    border-radius: 10px;
-    font-size: 13px;
-  }}
-}}
-
-
-/* FINAL COMPACT MOBILE LAYOUT - UI ONLY */
-@media (max-width: 767px) {{
-  html, body {{
-    width: 100%;
-    height: 100%;
-    overflow: hidden !important;
-  }}
-  #quizContainer {{
-    height: 100dvh;
-    min-height: 100dvh;
-  }}
-  .quiz-header {{
-    height: 106px;
-    padding: 8px 10px 7px;
-  }}
-  .header-top {{
-    margin-bottom: 7px;
-    gap: 6px;
-  }}
-  .quiz-title {{ font-size: 13px; gap: 5px; }}
-  .quiz-title-text {{ max-width: 150px; }}
-  .mode-badge {{ font-size: 8px; padding: 3px 6px; }}
-  .header-actions {{ gap: 5px; }}
-  .theme-toggle {{ width: 34px; height: 34px; font-size: 15px; }}
-  .timer-display {{
-    min-width: 92px;
-    height: 38px;
-    padding: 5px 9px;
-    gap: 5px;
-    font-size: 14px;
-    border-radius: 9px;
-  }}
-  .header-progress {{ font-size: 10px; margin-bottom: 5px; }}
-  .progress-bar-container {{ height: 4px; }}
-
-  .question-section {{
-    top: 106px;
-    bottom: 86px;
-    padding: 8px 8px 12px;
-  }}
-  .question-card {{
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 14px;
-    border-radius: 16px;
-    box-shadow: 0 2px 10px rgba(0,0,0,.05);
-  }}
-  .question-number {{
-    font-size: 12px;
-    padding: 5px 10px;
-    gap: 5px;
-    margin-bottom: 10px;
-  }}
-  .question-reference {{
-    padding: 8px 10px;
-    margin-bottom: 10px;
-    font-size: 12px;
-    line-height: 1.4;
-  }}
-  .question-text {{
-    font-size: 17px;
-    line-height: 1.48;
-    margin-bottom: 12px;
-    font-weight: 600;
-  }}
-  .options-container {{ gap: 7px; }}
-  .option-btn {{
-    min-height: 52px;
-    padding: 9px 10px;
-    border-width: 2px;
-    border-radius: 12px;
-    font-size: 14px;
-    line-height: 1.35;
-    gap: 9px;
-  }}
-  .option-indicator {{
-    min-width: 28px;
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
-  }}
-  .option-text {{ padding-top: 2px; }}
-  .explanation-box {{ padding: 10px; margin-top: 10px; }}
-  .explanation-header {{ font-size: 12px; margin-bottom: 6px; }}
-  .explanation-text {{ font-size: 12px; line-height: 1.45; }}
-
-  /* Fixed 2 x 2 navigation; never scrolls away */
-  .nav-controls {{
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 86px;
-    padding: 5px 7px calc(5px + env(safe-area-inset-bottom));
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 5px;
-    z-index: 999;
-    background: var(--bg-white);
-    box-shadow: 0 -2px 12px rgba(0,0,0,.10);
-  }}
-  .nav-btn {{
-    width: 100%;
-    min-width: 0;
-    min-height: 0;
-    height: 100%;
-    padding: 5px 6px;
-    border-radius: 9px;
-    font-size: 12px;
-    line-height: 1.05;
-    gap: 5px;
-  }}
-  .nav-btn i {{ font-size: 11px; }}
-  .question-nav-toggle {{
-    right: 10px;
-    bottom: 94px;
-    width: 42px;
-    height: 42px;
-    font-size: 17px;
-    z-index: 90;
-  }}
-  .question-nav-panel {{
-    max-height: 72dvh;
-    padding: 12px;
-    border-radius: 16px 16px 0 0;
-  }}
-  .nav-panel-header {{ margin-bottom: 10px; padding-bottom: 8px; }}
-  .nav-panel-title {{ font-size: 14px; }}
-  .nav-legend {{ gap: 7px; margin-bottom: 10px; font-size: 10px; }}
-  .legend-box {{ width: 14px; height: 14px; border-radius: 4px; }}
-  .question-grid {{ grid-template-columns: repeat(6, 1fr); gap: 5px; }}
-  .question-nav-item {{
-    border-width: 1px;
-    border-radius: 7px;
-    font-size: 11px;
-  }}
-
-  /* Compact start screen */
-  #modeSelection {{ padding: 10px; }}
-  .mode-container {{
-    max-width: 430px;
-    padding: 18px 14px;
-    border-radius: 18px;
-  }}
-  .mode-header {{ margin-bottom: 15px; }}
-  .mode-header-icon {{ width: 50px; height: 50px; font-size: 25px; border-radius: 14px; margin-bottom: 8px; }}
-  .mode-header h2 {{ font-size: 19px; margin-bottom: 4px; }}
-  .mode-header p {{ font-size: 11px; }}
-  .mode-cards {{ gap: 8px; margin-bottom: 12px; }}
-  .mode-card {{ padding: 11px; border-radius: 11px; border-width: 1px; }}
-  .mode-icon {{ width: 38px; height: 38px; border-radius: 10px; font-size: 17px; margin-right: 10px; }}
-  .mode-info h3 {{ font-size: 14px; margin-bottom: 2px; }}
-  .mode-info p {{ font-size: 10px; }}
-  .timer-config {{ margin-bottom: 12px; }}
-  .timer-config label {{ font-size: 11px; margin-bottom: 5px; }}
-  .timer-input {{ padding: 9px 10px; border-radius: 9px; font-size: 12px; }}
-  .start-btn {{ padding: 11px; border-radius: 10px; font-size: 13px; }}
-
-  /* Compact result screen */
-  #resultsContainer {{ padding: 10px; }}
-  .results-header {{ padding: 18px 10px; border-radius: 14px; margin-bottom: 10px; }}
-  .results-icon {{ font-size: 48px; margin-bottom: 8px; }}
-  .results-title {{ font-size: 21px; margin-bottom: 5px; }}
-  .results-score {{ font-size: 36px; margin-bottom: 5px; }}
-  .results-percentage {{ font-size: 14px; }}
-  .stats-grid {{ gap: 6px; margin-bottom: 10px; }}
-  .stat-card {{ padding: 11px 7px; border-radius: 10px; }}
-  .stat-icon {{ width: 30px; height: 30px; border-radius: 8px; font-size: 14px; margin-bottom: 5px; }}
-  .stat-value {{ font-size: 22px; margin-bottom: 2px; }}
-  .stat-label {{ font-size: 10px; }}
-  .action-buttons {{ gap: 7px; }}
-  .action-btn {{ padding: 11px; border-radius: 9px; font-size: 12px; }}
-  .result-filters {{ gap: 5px; margin-bottom: 8px; }}
-  .filter-btn {{ padding: 7px 8px; font-size: 10px; }}
-  .review-card {{ padding: 11px; border-radius: 11px; }}
-  .review-question {{ font-size: 13px; line-height: 1.45; }}
-  .answer-line {{ padding: 7px 8px; font-size: 11px; }}
-}}
-
 </style>
 </head>
 <body>
@@ -1761,256 +1307,78 @@ body{{font-family:'Poppins',-apple-system,BlinkMacSystemFont,sans-serif;backgrou
 .action-btn.primary{{background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);color:#fff}}
 .action-btn.secondary{{background:var(--bg-white);color:var(--text-dark);border:2px solid var(--border)}}
 .action-btn:hover{{transform:translateY(-2px)}}
-{_QUIZ_DESKTOP_CSS}
-
-/* ------------------------------------------------------------------
-   Compact CBT navigation + result analysis UI
-   ------------------------------------------------------------------ */
-.nav-controls {{
-  gap: 8px;
-  padding: 10px 12px;
-  flex-wrap: wrap;
+/* Mobile CBT layout: compact, fixed header/footer, with the question card
+   kept at its natural height so the remaining viewport stays intentionally
+   empty just like a real exam app. No quiz logic is changed. */
+@media (max-width: 1023px) {{
+  html, body {{ width:100%; min-height:100%; overflow:hidden !important; }}
+  body {{ min-height:100dvh; }}
+  #quizContainer {{ height:100dvh !important; min-height:100dvh !important; overflow:hidden !important; }}
+  .quiz-header {{ height:126px; padding:10px 12px 9px; }}
+  .header-top {{ height:50px; margin-bottom:8px; gap:6px; }}
+  .quiz-title {{ font-size:14px; gap:6px; }}
+  .quiz-title-text {{ max-width:185px; }}
+  .mode-badge {{ font-size:8px; padding:3px 7px; }}
+  .header-actions {{ gap:6px; }}
+  .theme-toggle {{ width:42px; height:42px; border-radius:12px; font-size:17px; }}
+  .timer-display {{ min-width:92px; height:42px; padding:6px 10px; justify-content:center; font-size:15px; border-radius:12px; }}
+  .header-progress {{ font-size:11px; margin-bottom:7px; }}
+  .progress-bar-container {{ height:6px; }}
+  .progress-bar {{ height:5px; }}
+  .question-section {{ top:126px !important; bottom:116px !important; padding:12px 10px 18px !important; overflow-y:auto !important; overflow-x:hidden !important; -webkit-overflow-scrolling:touch; }}
+  .question-card {{ width:100%; max-width:none; padding:18px 14px 16px; margin:0 auto; border-radius:18px; }}
+  .question-number {{ font-size:12px; padding:6px 12px; margin-bottom:12px; }}
+  .question-reference {{ font-size:13px; padding:10px 12px; margin-bottom:12px; line-height:1.45; }}
+  .question-text {{ font-size:16px; line-height:1.48; margin-bottom:14px; }}
+  .question-text p {{ margin-bottom:7px; }}
+  .options-container {{ gap:8px; }}
+  .option-btn {{ min-height:58px; padding:10px 12px; border-width:2px; border-radius:12px; font-size:15px; line-height:1.35; gap:10px; }}
+  .option-indicator {{ min-width:30px; width:30px; height:30px; font-size:13px; }}
+  .option-text {{ padding-top:2px; }}
+  .explanation-box {{ padding:11px 12px; margin-top:12px; }}
+  .explanation-header {{ font-size:12px; margin-bottom:6px; }}
+  .explanation-text {{ font-size:12px; line-height:1.45; }}
+  .nav-controls {{ position:fixed !important; left:0; right:0; bottom:0; height:116px; padding:7px 10px calc(7px + env(safe-area-inset-bottom)); display:grid !important; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:7px; z-index:500; }}
+  .nav-btn {{ min-width:0 !important; width:100%; height:100%; padding:7px 5px; border-radius:11px; font-size:13px; line-height:1.1; gap:5px; white-space:nowrap; }}
+  .nav-btn i {{ font-size:12px; }}
+  .question-nav-toggle {{ right:10px; bottom:126px; width:44px; height:44px; font-size:17px; }}
+  .question-nav-panel {{ max-height:72dvh; padding:14px; }}
+  .nav-panel-header {{ margin-bottom:12px; padding-bottom:10px; }}
+  .nav-panel-title {{ font-size:15px; }}
+  .nav-legend {{ gap:8px; margin-bottom:12px; font-size:11px; }}
+  .legend-box {{ width:16px; height:16px; }}
+  .question-grid {{ grid-template-columns:repeat(5,1fr); gap:7px; }}
+  .question-nav-item {{ font-size:12px; border-radius:8px; border-width:1px; }}
+  #resultsContainer {{ height:100dvh; padding:10px; }}
+  .results-header {{ padding:22px 12px; margin-bottom:10px; border-radius:16px; }}
+  .results-icon {{ font-size:50px; margin-bottom:10px; }}
+  .results-title {{ font-size:22px; margin-bottom:6px; }}
+  .results-score {{ font-size:38px; margin-bottom:5px; }}
+  .results-percentage {{ font-size:16px; }}
+  .stats-grid {{ grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:10px; }}
+  .stat-card {{ padding:12px; border-radius:12px; }}
+  .stat-icon {{ width:34px; height:34px; border-radius:9px; font-size:15px; margin-bottom:7px; }}
+  .stat-value {{ font-size:24px; }}
+  .stat-label {{ font-size:11px; }}
+  .action-buttons {{ gap:8px; }}
+  .action-btn {{ padding:12px; font-size:13px; border-radius:10px; }}
+  #modeSelection {{ min-height:100dvh; padding:12px; }}
+  .mode-container {{ padding:22px 16px; border-radius:18px; max-height:calc(100dvh - 24px); overflow-y:auto; }}
+  .mode-header {{ margin-bottom:18px; }}
+  .mode-header-icon {{ width:54px; height:54px; margin-bottom:10px; border-radius:15px; font-size:27px; }}
+  .mode-header h2 {{ font-size:21px; margin-bottom:5px; }}
+  .mode-header p {{ font-size:12px; }}
+  .mode-cards {{ gap:9px; margin-bottom:15px; }}
+  .mode-card {{ padding:12px; border-radius:12px; border-width:1px; }}
+  .mode-icon {{ width:40px; height:40px; border-radius:10px; font-size:18px; margin-right:11px; }}
+  .mode-info h3 {{ font-size:15px; margin-bottom:2px; }}
+  .mode-info p {{ font-size:11px; }}
+  .timer-config {{ margin-bottom:14px; }}
+  .timer-config label {{ font-size:12px; margin-bottom:6px; }}
+  .timer-input {{ padding:10px 12px; font-size:13px; border-radius:9px; }}
+  .start-btn {{ padding:12px; font-size:14px; border-radius:10px; }}
 }}
-.nav-btn {{
-  min-height: 46px;
-  padding: 9px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.15;
-}}
-.nav-btn.review-btn {{
-  background: #f59e0b;
-  color: #fff;
-  border: 1px solid #f59e0b;
-}}
-.nav-btn.clear-btn {{
-  background: #fff;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}}
-.nav-btn.submit-btn {{
-  background: #dc2626;
-  color: #fff;
-  border: 1px solid #dc2626;
-}}
-.nav-btn.primary {{ background: #16a34a; }}
-.nav-btn.primary:hover:not(:disabled) {{ background: #15803d; }}
-.question-nav-item.answered {{
-  background: #16b968 !important;
-  border-color: #16b968 !important;
-  color: #fff !important;
-}}
-.question-nav-item.marked {{
-  background: #f5ad13 !important;
-  border-color: #f5ad13 !important;
-  color: #111827 !important;
-}}
-.question-nav-item.unanswered {{
-  background: #3b8eea !important;
-  border-color: #3b8eea !important;
-  color: #fff !important;
-}}
-.question-nav-item.current {{
-  outline: 3px solid rgba(79,70,229,.22);
-  outline-offset: 1px;
-}}
-.legend-box.answered {{ background: #16b968 !important; }}
-.legend-box.marked {{ background: #f5ad13 !important; }}
-.legend-box.unanswered {{ background: #3b8eea !important; }}
-
-.result-filters {{
-  max-width: 980px;
-  margin: 0 auto 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}}
-.filter-btn {{
-  border: 1px solid var(--border);
-  background: var(--bg-white);
-  color: var(--text-dark);
-  border-radius: 999px;
-  padding: 9px 14px;
-  font: 600 13px 'Poppins', sans-serif;
-  cursor: pointer;
-  transition: .2s ease;
-}}
-.filter-btn.active {{
-  background: #172235;
-  color: #fff;
-  border-color: #172235;
-}}
-.correct-filter.active {{ background: #16a34a; border-color:#16a34a; }}
-.wrong-filter.active {{ background: #dc2626; border-color:#dc2626; }}
-.unanswered-filter.active {{ background: #3b82f6; border-color:#3b82f6; }}
-.review-summary {{
-  max-width: 980px;
-  margin: 0 auto 12px;
-  color: var(--text-light);
-  font-size: 13px;
-}}
-.review-list {{
-  max-width: 980px;
-  margin: 0 auto 18px;
-  display: grid;
-  gap: 12px;
-}}
-.review-card {{
-  background: var(--bg-white);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 18px;
-  box-shadow: 0 3px 14px rgba(0,0,0,.05);
-}}
-.review-card.correct-card {{ border-left: 5px solid #16a34a; }}
-.review-card.wrong-card {{ border-left: 5px solid #dc2626; }}
-.review-card.unanswered-card {{ border-left: 5px solid #3b82f6; }}
-.review-qno {{ font-weight: 800; color: var(--primary); margin-bottom: 9px; }}
-.review-question {{ font-size: 15px; font-weight: 600; line-height: 1.55; margin-bottom: 12px; }}
-.answer-line {{ margin-top: 7px; padding: 9px 11px; border-radius: 9px; font-size: 13px; line-height: 1.45; }}
-.answer-line.your {{ background: #fff0f0; color: #b91c1c; }}
-.answer-line.correct {{ background: #eaf8ef; color: #15803d; }}
-.answer-line.neutral {{ background: #eef6ff; color: #1d4ed8; }}
-.answer-line.explain {{ background: #fff8dc; color: #8a5a00; }}
-.answer-label {{ font-weight: 800; }}
-
-@media (max-width: 700px) {{
-  .nav-controls {{ gap: 6px; padding: 8px; }}
-  .nav-btn {{ flex: 1 1 calc(50% - 6px); min-width: 0; padding: 9px 7px; font-size: 11px; }}
-  .nav-btn i {{ font-size: 12px; }}
-  .result-filters {{ gap: 6px; }}
-  .filter-btn {{ flex: 1 1 calc(50% - 6px); padding: 8px 7px; font-size: 11px; }}
-  .review-card {{ padding: 14px; }}
-}}
-</style>
-</head>
-<body>
-<div id="modeSelection">
-<div class="mode-container">
-<div class="mode-header">
-<div class="mode-header-icon"><i class="fas fa-graduation-cap"></i></div>
-<h2>{quiz_name_esc}</h2>
-<p>Choose your preferred test mode</p>
-</div>
-<div class="mode-cards">
-<div class="mode-card exam-mode" data-mode="exam">
-<div class="mode-card-header">
-<div class="mode-icon"><i class="fas fa-file-alt"></i></div>
-<div class="mode-info">
-<h3>Exam Mode</h3>
-<p>Complete all questions, results shown after submission</p>
-</div>
-</div>
-</div>
-<div class="mode-card practice-mode" data-mode="practice">
-<div class="mode-card-header">
-<div class="mode-icon"><i class="fas fa-book-open"></i></div>
-<div class="mode-info">
-<h3>Practice Mode</h3>
-<p>Instant feedback with detailed explanations</p>
-</div>
-</div>
-</div>
-</div>
-<div class="timer-config">
-<label for="ct"><i class="fas fa-clock"></i> Custom Timer (minutes)</label>
-<input type="number" id="ct" class="timer-input" placeholder="Default: {int(total_time / 60)} minutes" min="1" max="300"/>
-</div>
-<button class="start-btn" id="sb" disabled><i class="fas fa-play-circle"></i><span>Start Quiz</span></button>
-</div>
-</div>
-<div id="quizContainer">
-<div class="quiz-header">
-<div class="header-top">
-<div class="quiz-title">
-<i class="fas fa-clipboard-list"></i>
-<span class="quiz-title-text" title="{quiz_name_esc}">{quiz_name_esc}</span>
-<span class="mode-badge" id="mb"></span>
-</div>
-<div class="header-actions">
-<button class="theme-toggle" id="tt" title="Toggle Dark Mode"><i class="fas fa-moon"></i></button>
-<div class="timer-display" id="td"><i class="fas fa-clock"></i><span id="tt2">00:00</span></div>
-</div>
-</div>
-<div class="header-progress">
-<span id="pt">Question 1 of {n_questions}</span>
-<span id="at">Attempted: 0/{n_questions}</span>
-</div>
-<div class="progress-bar-container"><div class="progress-bar" id="pb"></div></div>
-</div>
-<div class="question-section scrollable" id="qs"></div>
-<div class="nav-controls">
-<button class="nav-btn secondary" id="pv"><i class="fas fa-chevron-left"></i><span>Previous</span></button>
-<button class="nav-btn review-btn" id="mk"><i class="fas fa-bookmark"></i><span>Mark for Review</span></button>
-<button class="nav-btn clear-btn" id="cr"><i class="fas fa-eraser"></i><span>Clear Response</span></button>
-<button class="nav-btn primary" id="nx"><i class="fas fa-save"></i><span>Save &amp; Next</span></button>
-<button class="nav-btn submit-btn" id="sm" style="display:none"><i class="fas fa-paper-plane"></i><span>Submit</span></button>
-</div>
-<button class="question-nav-toggle" id="nt"><i class="fas fa-th"></i></button>
-<div class="question-nav-panel" id="np">
-<div class="nav-panel-header">
-<h3 class="nav-panel-title"><i class="fas fa-map-marked-alt"></i> Question Navigator</h3>
-<button class="nav-close-btn" id="nc"><i class="fas fa-times"></i></button>
-</div>
-<div class="nav-legend">
-<div class="legend-item"><div class="legend-box answered"></div><span>Answered</span></div>
-<div class="legend-item"><div class="legend-box marked"></div><span>Marked</span></div>
-<div class="legend-item"><div class="legend-box unanswered"></div><span>Not Answered</span></div>
-</div>
-<div class="question-grid" id="qg"></div>
-</div>
-</div>
-<div id="resultsContainer">
-<div class="results-header">
-<div class="results-icon" id="ri"></div>
-<h2 class="results-title" id="rt"></h2>
-<div class="results-score" id="rs"></div>
-<div class="results-percentage" id="rp"></div>
-</div>
-<div class="stats-grid">
-<div class="stat-card"><div class="stat-icon correct"><i class="fas fa-check"></i></div><div class="stat-value" id="cc">0</div><div class="stat-label">Correct</div></div>
-<div class="stat-card"><div class="stat-icon incorrect"><i class="fas fa-times"></i></div><div class="stat-value" id="ic">0</div><div class="stat-label">Incorrect</div></div>
-<div class="stat-card"><div class="stat-icon unattempted"><i class="fas fa-minus"></i></div><div class="stat-value" id="uc">0</div><div class="stat-label">Unattempted</div></div>
-<div class="stat-card"><div class="stat-icon negative"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-value" id="nm">0</div><div class="stat-label">Negative Marks</div></div>
-</div>
-<div class="result-filters" id="resultFilters">
-<button class="filter-btn active" data-filter="all"><i class="fas fa-list"></i><span>All Questions</span></button>
-<button class="filter-btn correct-filter" data-filter="correct"><i class="fas fa-check"></i><span>Correct</span></button>
-<button class="filter-btn wrong-filter" data-filter="wrong"><i class="fas fa-times"></i><span>Incorrect</span></button>
-<button class="filter-btn unanswered-filter" data-filter="unanswered"><i class="far fa-circle"></i><span>Not Answered</span></button>
-</div>
-<div class="review-summary" id="reviewSummary"></div>
-<div class="review-list" id="reviewList"></div>
-<div class="action-buttons">
-<button class="action-btn secondary" id="rb"><i class="fas fa-list-check"></i>Review Answers</button>
-<button class="action-btn primary" id="rsb"><i class="fas fa-redo"></i>Restart Quiz</button>
-</div>
-</div>
-<script>
-const qd={{q:[{questions_js}],m:null,tt:{total_time},nm:{negative_marks}}},
-st={{cq:0,a:Array(qd.q.length).fill(null),mk:Array(qd.q.length).fill(false),tr:qd.tt,ti:null,sb:false,rv:false,th:'light'}};
-if(window.marked){{marked.setOptions({{gfm:true,breaks:true}})}}
-function renderContent(text,inline){{
-    if(text===undefined||text===null||text==='')return '';
-    let t=String(text);
-    const store=[];
-    const stash=(expr,display)=>{{store.push({{expr:expr.trim(),display}});return '@@MATHPH'+(store.length-1)+'@@'}};
-    t=t.replace(/\\$\\$([\\s\\S]+?)\\$\\$/g,(m,e,off,str)=>{{
-        const bLine=str.slice(0,off).split('\\n').pop();
-        const aLine=str.slice(off+m.length).split('\\n')[0];
-        const isBlock=e.indexOf('\\n')>=0||(/^\\s*$/.test(bLine)&&/^\\s*$/.test(aLine));
-        return stash(e,isBlock);
-    }});
-    t=t.replace(/(?<!\\\\)\\$(?!\\s|\\$)([^$\\n]+?)(?<!\\s)\\$(?!\\d)/g,(m,e)=>stash(e,false));
-    t=t.replace(/(?<!=)==(?!=|\\s)([^=\\n]+?)(?<!\\s)==(?!=)/g,(m,e)=>'<mark>'+e+'</mark>');
-    let html;
-    try{{
-        html=inline?marked.parseInline(t):marked.parse(t);
-    }}catch(e){{
-        html=t.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }}
-    html=html.replace(/@@MATHPH(\\d+)@@/g,(m,idx)=>{{
-        const item=store[parseInt(idx)];
+ const item=store[parseInt(idx)];
         if(!item)return m;
         try{{
             return katex.renderToString(item.expr,{{displayMode:item.display,throwOnError:false,strict:false}});
@@ -2032,13 +1400,11 @@ function stt(){{utd();st.ti=setInterval(()=>{{st.tr--;utd();if(st.tr<=0){{clearI
 function utd(){{const m=Math.floor(st.tr/60),s=st.tr%60;document.getElementById('tt2').textContent=`${{String(m).padStart(2,'0')}}:${{String(s).padStart(2,'0')}}`}}
 function rq(i){{st.cq=i;const q=qd.q[i],qs=document.getElementById('qs');let h=`<div class="question-card"><div class="question-number"><i class="fas fa-question-circle"></i>Question ${{i+1}} of ${{qd.q.length}}</div>`;if(q.ref)h+=`<div class="question-reference protected-content"><i class="fas fa-info-circle"></i> ${{renderContent(q.ref,true)}}</div>`;h+=`<div class="question-text protected-content">${{renderContent(q.txt)}}</div><div class="options-container">`;q.opts.forEach((o,x)=>{{let bc='option-btn',ic=String.fromCharCode(65+x);const isSel=st.a[i]===x,isCor=x===q.ci,shAns=(qd.m==='practice'&&st.a[i]!==null)||st.sb;if(isSel)bc+=' selected';if(shAns){{bc+=' disabled';if(isCor){{bc+=' correct';ic='<i class="fas fa-check"></i>'}}else if(isSel&&!isCor){{bc+=' incorrect';ic='<i class="fas fa-times"></i>'}}}}h+=`<button class="${{bc}}" data-index="${{x}}" onclick="so(${{x}})"><div class="option-indicator">${{ic}}</div><div class="option-text protected-content">${{renderContent(o,true)}}</div></button>`}});h+=`</div>`;const shExp=(qd.m==='practice'&&st.a[i]!==null)||st.sb;if(shExp)h+=`<div class="explanation-box" style="display:block"><div class="explanation-header"><i class="fas fa-lightbulb"></i>Explanation</div><div class="explanation-text protected-content">${{renderContent(q.exp)}}</div></div>`;h+=`</div>`;qs.innerHTML=h;qs.scrollTop=0;up();unb();uqg()}}
 function so(oi){{if(st.sb)return;if(st.a[st.cq]===oi){{st.a[st.cq]=null}}else{{st.a[st.cq]=oi}}rq(st.cq)}}
-function sn(){{document.getElementById('pv').addEventListener('click',np);document.getElementById('nx').addEventListener('click',saveNext);document.getElementById('mk').addEventListener('click',tm);document.getElementById('cr').addEventListener('click',clearResponse);document.getElementById('sm').addEventListener('click',cs);document.getElementById('nt').addEventListener('click',tnp);document.getElementById('nc').addEventListener('click',tnp);document.getElementById('rb').addEventListener('click',()=>renderReview('all'));document.getElementById('rsb').addEventListener('click',rs);document.getElementById('tt').addEventListener('click',tgt);document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>renderReview(b.dataset.filter)));document.addEventListener('keydown',e=>{{if(st.sb)return;if(e.key==='ArrowLeft')np();if(e.key==='ArrowRight')saveNext()}})}}
+function sn(){{document.getElementById('pv').addEventListener('click',np);document.getElementById('nx').addEventListener('click',nn);document.getElementById('mk').addEventListener('click',tm);document.getElementById('sm').addEventListener('click',cs);document.getElementById('nt').addEventListener('click',tnp);document.getElementById('nc').addEventListener('click',tnp);document.getElementById('rb').addEventListener('click',ra);document.getElementById('rsb').addEventListener('click',rs);document.getElementById('tt').addEventListener('click',tgt);document.addEventListener('keydown',e=>{{if(st.sb)return;if(e.key==='ArrowLeft')np();if(e.key==='ArrowRight')nn()}})}}
 function np(){{if(st.cq>0)rq(st.cq-1)}}
 function nn(){{if(st.cq<qd.q.length-1)rq(st.cq+1)}}
-function saveNext(){{if(st.sb)return;if(st.cq<qd.q.length-1){{rq(st.cq+1)}}else{{cs()}}}}
-function clearResponse(){{if(st.sb)return;st.a[st.cq]=null;rq(st.cq)}}
-function tm(){{st.mk[st.cq]=!st.mk[st.cq];uqg();const mb=document.getElementById('mk');mb.innerHTML=st.mk[st.cq]?'<i class="fas fa-bookmark"></i><span>Unmark Review</span>':'<i class="fas fa-bookmark"></i><span>Mark for Review</span>'}}
-function unb(){{document.getElementById('pv').disabled=st.cq===0;if(st.cq===qd.q.length-1){{document.getElementById('nx').style.display='none';document.getElementById('sm').style.display='flex'}}else{{document.getElementById('nx').style.display='flex';document.getElementById('sm').style.display='none'}}const mb=document.getElementById('mk');mb.innerHTML=st.mk[st.cq]?'<i class="fas fa-bookmark"></i><span>Unmark Review</span>':'<i class="fas fa-bookmark"></i><span>Mark for Review</span>';}}
+function tm(){{st.mk[st.cq]=!st.mk[st.cq];uqg();const mb=document.getElementById('mk');mb.innerHTML=st.mk[st.cq]?'<i class="fas fa-bookmark"></i> Unmark':'<i class="fas fa-bookmark"></i> Mark'}}
+function unb(){{document.getElementById('pv').disabled=st.cq===0;if(st.cq===qd.q.length-1){{document.getElementById('nx').style.display='none';document.getElementById('sm').style.display='flex'}}else{{document.getElementById('nx').style.display='flex';document.getElementById('sm').style.display='none'}}const mb=document.getElementById('mk');mb.innerHTML=st.mk[st.cq]?'<i class="fas fa-bookmark"></i> Unmark':'<i class="fas fa-bookmark"></i> Mark'}}
 function up(){{const at=st.a.filter(a=>a!==null).length,pr=((st.cq+1)/qd.q.length)*100;document.getElementById('pt').textContent=`Question ${{st.cq+1}} of ${{qd.q.length}}`;document.getElementById('at').textContent=`Attempted: ${{at}}/${{qd.q.length}}`;document.getElementById('pb').style.width=pr+'%'}}
 function rqg(){{const g=document.getElementById('qg');g.innerHTML='';qd.q.forEach((_,i)=>{{const it=document.createElement('div');it.className='question-nav-item';it.textContent=i+1;it.onclick=()=>{{rq(i);if(window.innerWidth<768)tnp()}};g.appendChild(it)}})}}
 function uqg() {{
@@ -2050,17 +1416,15 @@ function uqg() {{
             if (st.a[i] === qd.q[i].ci) it.classList.add('correct');
             else if (st.a[i] !== null) it.classList.add('incorrect');
         }} else {{
+            if (st.a[i] !== null) it.classList.add('answered');
             if (st.mk[i]) it.classList.add('marked');
-            else if (st.a[i] !== null) it.classList.add('answered');
-            else it.classList.add('unanswered');
         }}
     }});
 }}
 function tnp(){{document.getElementById('np').classList.toggle('open')}}
 function cs(){{const u=st.a.filter(a=>a===null).length;if(u>0){{const c=window.confirm(`You have ${{u}} unattempted question(s). Do you want to submit?`);if(!c)return}}sbq()}}
-function sbq(){{clearInterval(st.ti);st.sb=true;let c=0,ic=0,u=0,nm=0;st.a.forEach((a,i)=>{{if(a===null)u++;else if(a===qd.q[i].ci)c++;else{{ic++;nm+=qd.nm}}}});const ts=c-nm,pc=(ts/qd.q.length)*100;document.body.style.overflow='auto';document.getElementById('quizContainer').style.display='none';document.getElementById('resultsContainer').style.display='block';document.getElementById('resultsContainer').classList.add('scrollable');if(pc>=70){{document.getElementById('ri').innerHTML='<i class="fas fa-trophy" style="color:#fbbf24"></i>';document.getElementById('rt').textContent='Excellent Performance!'}}else if(pc>=50){{document.getElementById('ri').innerHTML='<i class="far fa-smile" style="color:#48bb78"></i>';document.getElementById('rt').textContent='Good Job!'}}else{{document.getElementById('ri').innerHTML='<i class="far fa-meh" style="color:#f5576c"></i>';document.getElementById('rt').textContent='Keep Practicing!'}}document.getElementById('rs').textContent=ts.toFixed(2)+' / '+qd.q.length;document.getElementById('rp').textContent=pc.toFixed(1)+'%';document.getElementById('cc').textContent=c;document.getElementById('ic').textContent=ic;document.getElementById('uc').textContent=u;document.getElementById('nm').textContent='-'+nm.toFixed(2);renderReview('all')}}
-function renderReview(filter){{const list=document.getElementById('reviewList');if(!list)return;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter===filter));let html='',shown=0;qd.q.forEach((q,i)=>{{const a=st.a[i];const type=a===null?'unanswered':(a===q.ci?'correct':'wrong');if(filter!=='all'&&filter!==type)return;shown++;const cardClass=type==='correct'?'correct-card':type==='wrong'?'wrong-card':'unanswered-card';const qText=renderContent(q.txt);let your='Not Answered';if(a!==null)your=renderContent(q.opts[a],true);const correct=renderContent(q.opts[q.ci],true);html+=`<div class="review-card ${{cardClass}}"><div class="review-qno">Question ${{i+1}}</div><div class="review-question protected-content">${{qText}}</div>${{a===null?'<div class="answer-line neutral"><span class="answer-label">Your Answer:</span> Not Answered</div>':'<div class="answer-line your"><span class="answer-label">Your Answer:</span> '+your+'</div>'}}<div class="answer-line correct"><span class="answer-label">Correct Answer:</span> ${{correct}}</div>${{q.exp?'<div class="answer-line explain"><span class="answer-label">Explanation:</span> '+renderContent(q.exp)+'</div>':''}}</div>`}});document.getElementById('reviewSummary').textContent=shown+' question(s) shown';list.innerHTML=html||'<div class="review-card">No questions in this category.</div>';list.scrollIntoView({{behavior:'smooth',block:'start'}})}}
-function ra(){{renderReview('all')}}
+function sbq(){{clearInterval(st.ti);st.sb=true;let c=0,ic=0,u=0,nm=0;st.a.forEach((a,i)=>{{if(a===null)u++;else if(a===qd.q[i].ci)c++;else{{ic++;nm+=qd.nm}}}});const ts=c-nm,pc=(ts/qd.q.length)*100;document.body.style.overflow='auto';document.getElementById('quizContainer').style.display='none';document.getElementById('resultsContainer').style.display='block';document.getElementById('resultsContainer').classList.add('scrollable');if(pc>=70){{document.getElementById('ri').innerHTML='<i class="fas fa-trophy" style="color:#fbbf24"></i>';document.getElementById('rt').textContent='Excellent Performance!'}}else if(pc>=50){{document.getElementById('ri').innerHTML='<i class="far fa-smile" style="color:#48bb78"></i>';document.getElementById('rt').textContent='Good Job!'}}else{{document.getElementById('ri').innerHTML='<i class="far fa-meh" style="color:#f5576c"></i>';document.getElementById('rt').textContent='Keep Practicing!'}}document.getElementById('rs').textContent=ts.toFixed(2)+' / '+qd.q.length;document.getElementById('rp').textContent=pc.toFixed(1)+'%';document.getElementById('cc').textContent=c;document.getElementById('ic').textContent=ic;document.getElementById('uc').textContent=u;document.getElementById('nm').textContent='-'+nm.toFixed(2)}}
+function ra(){{st.rv=true;document.body.style.overflow='hidden';document.getElementById('resultsContainer').style.display='none';document.getElementById('quizContainer').style.display='block';rq(0);uqg()}}
 function rs(){{document.body.style.overflow='hidden';location.reload()}}
 </script>
 </body>
