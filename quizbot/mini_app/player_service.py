@@ -256,26 +256,22 @@ async def complete_session(attempt_id: str) -> Optional[dict]:
 
     rank_info = await LeaderboardRepository(get_db()).user_rank(qid, session["user_id"])
 
-    negative_marks_total = sum(
-        max(0.0, -float(a.get("score_delta", 0)))
-        for a in answers.values()
-        if not a.get("correct")
-    )
-
-    review = []
-    for position, q_idx in enumerate(session["order"]):
-        q = session["quiz"]["questions"][q_idx]
-        pq = session["per_question"][q_idx]
-        ans = answers.get(q_idx)
-        review.append({
-            "position": position,
-            "question": q.get("question", ""),
-            "options": pq["options"],
-            "correct_options": pq["correct_ids"],
-            "selected": ans["selected"] if ans else [],
-            "correct": ans["correct"] if ans else False,
-            "explanation": q.get("explanation"),
-        })
+    review = None
+    if session["mode"] == "exam":
+        review = []
+        for position, q_idx in enumerate(session["order"]):
+            q = session["quiz"]["questions"][q_idx]
+            pq = session["per_question"][q_idx]
+            ans = answers.get(q_idx)
+            review.append({
+                "position": position,
+                "question": q.get("question", ""),
+                "options": pq["options"],
+                "correct_options": pq["correct_ids"],
+                "selected": ans["selected"] if ans else [],
+                "correct": ans["correct"] if ans else False,
+                "explanation": q.get("explanation"),
+            })
 
     return {
         "score": round(total_score, 4),
@@ -284,7 +280,6 @@ async def complete_session(attempt_id: str) -> Optional[dict]:
         "unanswered": len(session["order"]) - len(answers),
         "total_questions": len(session["order"]),
         "total_time": round(total_time, 1),
-        "negative_marks": round(negative_marks_total, 4),
         "rank": rank_info.get("rank") if rank_info else None,
         "review": review,
     }
