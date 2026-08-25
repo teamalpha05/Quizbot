@@ -949,6 +949,77 @@
   html[data-qsg-dark="1"] .quiz-topbar { background:linear-gradient(135deg,#162f62,#214889); }
   html[data-qsg-dark="1"] .nav-q { background:#202938; }
 
+
+
+  /* ===== Final mobile fitting: screenshot-style compact layout ===== */
+  @media (max-width: 599px) {
+    html, body { overflow-x: hidden; }
+    body { padding: 0; }
+    #app { width: 100%; max-width: none; }
+    #view-play { min-height: 100dvh !important; }
+
+    .quiz-topbar {
+      min-height: 72px;
+      padding: 10px 10px;
+      gap: 7px;
+      border-radius: 0;
+    }
+    .quiz-topbar .brand { font-size: 15px; }
+    .quiz-topbar .top-icon { width: 44px; height: 44px; flex-basis: 44px; }
+    .quiz-topbar .top-timer { min-width: 92px; padding: 6px 9px; }
+    .quiz-topbar .top-timer .timer-value { font-size: 18px; }
+
+    .play-header { padding: 10px 12px 7px; }
+    .progress-top { font-size: 12px; }
+    .progress-bar-track { height: 6px; }
+
+    /* Never reserve the viewport's unused height for the question card. */
+    .q-card-outer {
+      flex: 0 0 auto !important;
+      min-height: 0 !important;
+      height: auto !important;
+      padding: 0 12px 7px !important;
+    }
+    #q-card-slot { min-height: 0 !important; height: auto !important; }
+    .q-card {
+      padding: 15px 13px 16px !important;
+      border-radius: 20px;
+      margin: 0;
+      box-shadow: 0 2px 12px rgba(30,55,100,.06);
+    }
+    .q-text {
+      font-size: 19px !important;
+      line-height: 1.48 !important;
+      margin: 10px 0 2px !important;
+    }
+    .options { gap: 8px !important; margin-top: 12px !important; }
+    .option-btn {
+      min-height: 54px !important;
+      padding: 10px 12px !important;
+      border-radius: 15px;
+      font-size: 15.5px !important;
+    }
+    .option-letter { width: 32px !important; height: 32px !important; flex-basis: 32px !important; }
+
+    .quiz-actions {
+      position: sticky !important;
+      bottom: 0 !important;
+      padding: 7px 10px calc(7px + var(--safe-bottom)) !important;
+      margin-top: 0 !important;
+      gap: 0 !important;
+      box-shadow: 0 -3px 12px rgba(20,40,80,.08);
+    }
+    .quiz-actions .action-row { gap: 7px !important; }
+    .quiz-actions .action-row.secondary { margin-top: 7px !important; }
+    .quiz-action-btn {
+      min-height: 49px !important;
+      padding: 8px 6px !important;
+      border-radius: 13px !important;
+      font-size: 14px !important;
+      line-height: 1.15;
+    }
+  }
+
 </style>
 </head>
 <body>
