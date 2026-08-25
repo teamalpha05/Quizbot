@@ -338,6 +338,278 @@ def _page_shell(*, title: str, extra_head: str, body: str, extra_scripts: str) -
 {_FONT_AWESOME_LINK}
 <style>{_BASE_CSS}
 {extra_head}
+
+/* ------------------------------------------------------------------
+   MOBILE COMPACT UI
+   Visual-only sizing/layout changes. JavaScript and quiz functions
+   remain untouched.
+   ------------------------------------------------------------------ */
+@media (max-width: 700px) {{
+  body {{ overflow: hidden; }}
+
+  .quiz-header {{
+    padding: 8px 10px;
+  }}
+  .header-top {{
+    margin-bottom: 7px;
+    gap: 6px;
+  }}
+  .quiz-title {{
+    font-size: 13px;
+    gap: 5px;
+  }}
+  .quiz-title-text {{
+    max-width: 145px;
+  }}
+  .mode-badge {{
+    font-size: 8px;
+    padding: 3px 7px;
+  }}
+  .header-actions {{
+    gap: 5px;
+  }}
+  .theme-toggle {{
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    font-size: 14px;
+  }}
+  .timer-display {{
+    min-width: 82px;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 9px;
+    border-radius: 10px;
+    font-size: 14px;
+  }}
+  .header-progress {{
+    font-size: 10px;
+    margin-bottom: 5px;
+  }}
+  .progress-bar-container {{
+    height: 4px;
+  }}
+
+  .question-section {{
+    top: 94px;
+    bottom: 122px;
+    padding: 10px 9px;
+  }}
+  .question-card {{
+    max-width: none;
+    padding: 14px 12px;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.05);
+  }}
+  .question-number {{
+    font-size: 11px;
+    padding: 5px 9px;
+    gap: 5px;
+    border-radius: 16px;
+    margin-bottom: 10px;
+  }}
+  .question-reference {{
+    padding: 9px 10px;
+    border-left-width: 3px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    line-height: 1.45;
+  }}
+  .question-text {{
+    font-size: 17px;
+    line-height: 1.48;
+    margin-bottom: 12px;
+  }}
+  .question-text p {{
+    margin-bottom: 7px;
+  }}
+  .question-text ul,
+  .question-text ol {{
+    margin: 5px 0 5px 18px;
+  }}
+
+  .options-container {{
+    gap: 7px;
+  }}
+  .option-btn {{
+    padding: 10px 11px;
+    border-width: 2px;
+    border-radius: 11px;
+    font-size: 15px;
+    line-height: 1.38;
+    gap: 9px;
+  }}
+  .option-indicator {{
+    min-width: 25px;
+    width: 25px;
+    height: 25px;
+    font-size: 12px;
+    border-width: 2px;
+  }}
+  .option-text {{
+    padding-top: 1px;
+  }}
+
+  .nav-controls {{
+    padding: 6px 8px 8px;
+    gap: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex-wrap: nowrap;
+  }}
+  .nav-btn {{
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 7px 5px;
+    border-radius: 11px;
+    font-size: 12px;
+    line-height: 1.15;
+    gap: 5px;
+  }}
+  .nav-btn i {{
+    font-size: 12px;
+  }}
+
+  .question-nav-toggle {{
+    width: 44px;
+    height: 44px;
+    right: 10px;
+    bottom: 132px;
+    font-size: 17px;
+  }}
+  .question-nav-panel {{
+    padding: 12px;
+    max-height: 68vh;
+    border-radius: 18px 18px 0 0;
+  }}
+  .nav-panel-header {{
+    margin-bottom: 10px;
+    padding-bottom: 9px;
+    border-bottom-width: 1px;
+  }}
+  .nav-panel-title {{
+    font-size: 14px;
+  }}
+  .nav-close-btn {{
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }}
+  .nav-legend {{
+    gap: 7px;
+    margin-bottom: 10px;
+    font-size: 10px;
+  }}
+  .legend-box {{
+    width: 13px;
+    height: 13px;
+    border-radius: 4px;
+  }}
+  .question-grid {{
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }}
+  .question-nav-item {{
+    border-width: 1px;
+    border-radius: 8px;
+    font-size: 12px;
+  }}
+
+  #resultsContainer {{
+    padding: 10px;
+  }}
+  .results-header {{
+    padding: 18px 10px;
+    border-radius: 15px;
+    margin-bottom: 10px;
+  }}
+  .results-icon {{
+    font-size: 48px;
+    margin-bottom: 8px;
+  }}
+  .results-title {{
+    font-size: 22px;
+    margin-bottom: 6px;
+  }}
+  .results-score {{
+    font-size: 36px;
+    margin-bottom: 5px;
+  }}
+  .results-percentage {{
+    font-size: 15px;
+  }}
+  .stats-grid {{
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+    margin-bottom: 10px;
+  }}
+  .stat-card {{
+    padding: 11px;
+    border-radius: 12px;
+  }}
+  .stat-icon {{
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }}
+  .stat-value {{
+    font-size: 23px;
+    margin-bottom: 2px;
+  }}
+  .stat-label {{
+    font-size: 10px;
+  }}
+  .result-filters {{
+    gap: 5px;
+    margin-bottom: 9px;
+  }}
+  .filter-btn {{
+    flex: 1 1 calc(50% - 5px);
+    padding: 7px 5px;
+    font-size: 10px;
+  }}
+  .review-summary {{
+    font-size: 11px;
+    margin-bottom: 8px;
+  }}
+  .review-list {{
+    gap: 7px;
+  }}
+  .review-card {{
+    padding: 11px;
+    border-radius: 11px;
+  }}
+  .review-qno {{
+    margin-bottom: 6px;
+    font-size: 12px;
+  }}
+  .review-question {{
+    font-size: 14px;
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }}
+  .answer-line {{
+    margin-top: 5px;
+    padding: 7px 8px;
+    border-radius: 7px;
+    font-size: 11px;
+    line-height: 1.4;
+  }}
+  .action-buttons {{
+    gap: 7px;
+    margin-bottom: 8px;
+  }}
+  .action-btn {{
+    padding: 11px;
+    border-radius: 10px;
+    font-size: 13px;
+  }}
+}}
+
 </style>
 </head>
 <body>
