@@ -1,390 +1,108 @@
 """
-Quiz Bot - Test Series PDF Handler
+Advance Quiz Bot — Open Source Project
+This project was originally developed by Gagan (github.com/devgaganin).
+Reference: https://t.me/advance_quiz_bot
+The codebase has been reviewed and verified with the assistance of Claude AI.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
-import time
-from io import BytesIO
 
-from pyrogram import Client, filters
-from pyrogram.types import Message
+from telegram import Update
+from telegram.constants import ChatType, ParseMode
+from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ContextTypes
 
-from quizbot.database import QuizRepository, get_db
-from quizbot.shared import config
-from quizbot.shared.html.quiz_report import render_quiz_html
-from quizbot.shared.utils import is_premium_user
-from quizbot.shared.utils.http import get_session, request_json
+from quizbot.database import AttemptRepository, ChatSettingsRepository, QuizRepository, get_db
+from quizbot.shared.html.quiz_report import render_analysis_html
 
-from ..ratelimit import ratelimit
+from ..telegram_utils import safe_send_message
 
 logger = logging.getLogger(__name__)
 
-_TSR_LOCK = asyncio.Lock()
 
-
-@ratelimit("default")
-async def whtml_cmd(c: Client, m: Message) -> None:
-    parts = m.text.split()
-
-    if len(parts) < 2:
-        await m.reply("Usage: `/whtml QUIZID`")
-        return
-
-    qid = parts[1].strip()
-    status = await m.reply("Fetching quiz data...")
-
-    quiz = await QuizRepository(get_db()).get(qid)
-
-    if not quiz:
-        await status.edit_text("Quiz not found.")
-        return
-
-    if quiz.get("creator_id") != m.from_user.id:
-        await status.edit_text("This is not your quiz.")
-        return
-
+async def _require_group_admin(ctx: ContextTypes.DEFAULT_TYPE, chat_id: int, user_id: int) -> bool:
     try:
-        html_bytes, filename = await render_quiz_html(quiz, mode="exam")
-    except Exception as exc:
-        logger.exception("render_quiz_html failed for qid=%s", qid)
-        await status.edit_text(f"Error generating report: {exc}")
-        return
+        member = await ctx.bot.get_chat_member(chat_id, user_id)
+        return member.status in ("administrator", "creator")
+    except Exception:
+        return False
 
-    await status.edit_text("Uploading report...")
 
-    buf = BytesIO(html_bytes)
-    buf.name = filename
-
+async def html_command(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """`/html` -- toggle HTML quiz-report generation for this chat."""
+    chat_id = update.message.chat_id
     try:
-        await m.reply_document(
-            document=buf,
-            file_name=filename,
-            caption=(
-                f"**Quiz Report: {quiz.get('quiz_name', qid)}**\n"
-                f"{len(quiz.get('questions', []))} questions"
-            ),
-        )
-        await status.delete()
-    except Exception as exc:
-        logger.exception("Failed to send whtml report for qid=%s", qid)
-        await status.edit_text(f"Failed to send file: {exc}")
+        if update.message.chat.type != ChatType.PRIVATE:
+            uid = update.message.from_user.id
+            if not await _require_group_admin(ctx, chat_id, uid):
+                await safe_send_message(ctx, chat_id, "\U0001F6AB Admin only.")
+                return
+
+        repo = ChatSettingsRepository(get_db())
+        enabled = await repo.toggle(chat_id, "html")
+        text = "✅ HTML Reports ENABLED.\nUse /html again to disable." if enabled else "❌ HTML Reports DISABLED.\nUse /html again to enable."
+        await safe_send_message(ctx, chat_id, text, parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.error("html_command error: %s", e)
 
 
-def _parse_testseries_args(raw: str) -> tuple[str, str | None, list[str]]:
-    tokens = raw.split()
+async def pdf_command(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """`/pdf` -- toggle PDF quiz-report generation for this chat."""
+    chat_id = update.message.chat_id
+    try:
+        if update.message.chat.type != ChatType.PRIVATE:
+            uid = update.message.from_user.id
+            if not await _require_group_admin(ctx, chat_id, uid):
+                await safe_send_message(ctx, chat_id, "\U0001F6AB Admin only.")
+                return
 
-    mode = "keyonly"
-    title_override = None
-    quiz_ids: list[str] = []
-
-    for tok in tokens:
-        low = tok.lower()
-
-        if low.startswith("mode="):
-            val = low.split("=", 1)[1]
-            if val in ("inline", "keyonly"):
-                mode = val
-
-        elif low.startswith("title="):
-            title_override = (
-                tok.split("=", 1)[1]
-                .replace("_", " ")
-                .strip()
-            )
-
-        else:
-            quiz_ids.append(tok.strip())
-
-    return mode, title_override, quiz_ids
+        repo = ChatSettingsRepository(get_db())
+        enabled = await repo.toggle(chat_id, "pdf")
+        text = "✅ PDF Reports ENABLED.\nUse /pdf again to disable." if enabled else "❌ PDF Reports DISABLED.\nUse /pdf again to enable."
+        await safe_send_message(ctx, chat_id, text, parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.error("pdf_command error: %s", e)
 
 
-async def _generate_pdf_via_api(
-    quizzes: list[dict],
-    mode: str,
-    title: str,
-    test_id: str,
-    poll_timeout: int = 180,
-) -> bytes:
+async def compare_results(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """`compare_{qid}_{chat_id}` callback -- DMs the requesting user an
+    analysis report comparing all attempts on this quiz recorded so far."""
+    try:
+        query = update.callback_query
+        user_id = query.from_user.id
+        parts = query.data.split("_")
+        qid = parts[1]
 
-    questions_payload = []
+        chat_settings_repo = ChatSettingsRepository(get_db())
+        settings = await chat_settings_repo.get(int(parts[2])) if len(parts) > 2 else None
+        if settings is not None and not settings["html_enabled"]:
+            await query.answer(text="❌ HTML reports disabled. Use /html", show_alert=True)
+            return
 
-    for quiz in quizzes:
-        for q in quiz.get("questions", []):
-            options = [
-                str(o)
-                for o in q.get("options", [])
-                if o is not None and str(o).strip()
-            ]
-
-            if not options:
-                continue
-
-            questions_payload.append(
-                {
-                    "question": str(q.get("question", "")).strip(),
-                    "options": options,
-                    "correct_option_id": q.get(
-                        "correct_option_id",
-                        q.get("correct_option", 0),
-                    ),
-                    "explanation": str(
-                        q.get("explanation") or ""
-                    ).strip(),
-                    "reply_text": str(
-                        q.get("reply_text") or ""
-                    ).strip(),
-                }
-            )
-
-    if not questions_payload:
-        raise RuntimeError("No usable questions found.")
-
-    payload = {
-        "questions_json": questions_payload,
-        "institute_name": "QUICK STUDY GROUP",
-        "tagline": "Mock Test",
-        "exam_title": title,
-        "test_id": test_id,
-        "solution_display": "inline" if mode == "inline" else "end",
-        "quiz_names": [
-            str(q.get("quiz_name") or q.get("qid") or "")
-            for q in quizzes
-        ],
-        "async": True,
-    }
-
-    base = config.PDF_API_BASE.rstrip("/")
-
-    status, job = await request_json(
-        "POST",
-        f"{base}/api/generate",
-        json_body=payload,
-    )
-
-    if status != 200 or not isinstance(job, dict):
-        raise RuntimeError(
-            f"PDF API rejected the request (HTTP {status}): {job}"
-        )
-
-    if job.get("error"):
-        raise RuntimeError(f"PDF API error: {job['error']}")
-
-    progress_path = job.get("progress_url")
-    download_path = job.get("download_url")
-
-    if not progress_path:
-        raise RuntimeError("PDF API did not return progress_url.")
-
-    if not download_path:
-        raise RuntimeError("PDF API did not return download_url.")
-
-    progress_url = (
-        progress_path
-        if progress_path.startswith("http")
-        else base + progress_path
-    )
-
-    download_url = (
-        download_path
-        if download_path.startswith("http")
-        else base + download_path
-    )
-
-    deadline = time.time() + poll_timeout
-
-    while time.time() < deadline:
-        pstatus, pjob = await request_json("GET", progress_url)
-
-        if not isinstance(pjob, dict):
-            raise RuntimeError(
-                "PDF API returned invalid progress data."
-            )
-
-        job_status = pjob.get("status")
-
-        if job_status == "error":
-            raise RuntimeError(
-                "PDF generation failed: "
-                f"{pjob.get('error', 'unknown error')}"
-            )
-
-        if job_status == "done":
-            break
-
-        await asyncio.sleep(1.2)
-
-    else:
-        raise RuntimeError("PDF generation timed out.")
-
-    session = await get_session()
-
-    async with session.get(download_url) as resp:
-        if resp.status != 200:
-            raise RuntimeError(
-                f"PDF download failed (HTTP {resp.status})."
-            )
-
-        return await resp.read()
-
-
-@ratelimit("default")
-async def testseries_cmd(c: Client, m: Message) -> None:
-
-    uid = m.from_user.id
-
-    if not config.PDF_API_BASE:
-        await m.reply(
-            "PDF generation is not configured.\n\n"
-            "Set PDF_API_BASE in Render environment variables."
-        )
-        return
-
-    if _TSR_LOCK.locked():
-        await m.reply(
-            "⏳ Another PDF is being generated.\n"
-            "Please try again shortly."
-        )
-        return
-
-    if not await is_premium_user(uid):
-        await m.reply("Premium feature.")
-        return
-
-    parts = m.text.split(maxsplit=1)
-    raw = parts[1].strip() if len(parts) > 1 else ""
-
-    if not raw:
-        await m.reply(
-            "**Mock Test PDF Generator**\n\n"
-            "Use:\n"
-            "`/tsr QUIZ_ID`\n\n"
-            "The test name and question count will be taken automatically."
-        )
-        return
-
-    mode, title_override, quiz_ids = _parse_testseries_args(raw)
-
-    if not quiz_ids:
-        await m.reply("❌ No quiz ID found.\n\nUse: `/tsr QUIZ_ID`")
-        return
-
-    async with _TSR_LOCK:
-
-        status = await m.reply(
-            f"📚 Fetching {len(quiz_ids)} quiz..."
-        )
+        await query.answer(text="\U0001F4CA Generating analysis...", show_alert=True)
 
         quiz_repo = QuizRepository(get_db())
-
-        quizzes = []
-        failed = []
-        not_owner = []
-
-        for qid in quiz_ids:
-            quiz = await quiz_repo.get(qid)
-
-            if not quiz or not quiz.get("questions"):
-                failed.append(qid)
-                continue
-
-            if quiz.get("creator_id") != uid:
-                not_owner.append(qid)
-                continue
-
-            quizzes.append(quiz)
-
-        if not quizzes:
-            if not_owner:
-                await status.edit_text(
-                    "❌ You are not the creator of:\n"
-                    + "\n".join(not_owner)
-                )
-            else:
-                await status.edit_text("❌ No valid quiz found.")
+        quiz = await quiz_repo.get(qid)
+        if not quiz:
+            await safe_send_message(ctx, user_id, "❌ Quiz data not found.")
             return
 
-        if title_override:
-            exam_title = title_override
-        elif len(quizzes) == 1:
-            exam_title = str(
-                quizzes[0].get("quiz_name", "Mock Test")
-            ).strip()
-        else:
-            exam_title = (
-                str(
-                    quizzes[0].get("quiz_name", "Mock Test")
-                ).strip()
-                or "Mock Test Series"
-            )
-
-        # The user only needs to enter /tsr QUIZ_ID.
-        test_id = str(quiz_ids[0]).strip()
-
-        total_questions = sum(
-            len(q.get("questions", []))
-            for q in quizzes
-        )
-
-        await status.edit_text(
-            "📝 Generating PDF...\n\n"
-            f"📘 Test: **{exam_title}**\n"
-            f"📚 Questions: **{total_questions}**"
-        )
-
-        try:
-            pdf_bytes = await _generate_pdf_via_api(
-                quizzes=quizzes,
-                mode=mode,
-                title=exam_title,
-                test_id=test_id,
-            )
-        except Exception as exc:
-            logger.exception("testseries PDF generation failed")
-            await status.edit_text(
-                f"❌ PDF generation failed:\n\n{exc}"
-            )
+        attempt_repo = AttemptRepository(get_db())
+        results = await attempt_repo.list_completed(qid)
+        if not results:
+            await safe_send_message(ctx, user_id, "No completed attempts found for this quiz yet.")
             return
 
-        filename = f"MockTest_{test_id}.pdf"
-
-        buf = BytesIO(pdf_bytes)
-        buf.name = filename
-
-        caption = (
-            "📄 <b>PDF Generated</b>\n\n"
-            f"🆔 <b>Test ID:</b> {test_id}\n"
-            f"📚 <b>Questions:</b> {total_questions}\n"
-            f"📘 <b>Test:</b> {exam_title}\n\n"
-            "🇮🇳 Dream big, work hard, stay focused\n"
-            "CLICK HERE ➢ @AIpha_World"
+        html_bytes, filename = await render_analysis_html({**quiz, "qid": qid}, results)
+        await ctx.bot.send_document(
+            chat_id=user_id, document=html_bytes, filename=filename, caption="\U0001F4CA Your quiz analysis report"
         )
-
-        try:
-            await m.reply_document(
-                document=buf,
-                file_name=filename,
-                caption=caption,
-            )
-            await status.delete()
-
-        except Exception as exc:
-            logger.exception("Failed to send testseries PDF")
-            await status.edit_text(
-                f"❌ Failed to send PDF:\n\n{exc}"
-            )
+    except Exception as e:
+        logger.error("compare_results error: %s", e, exc_info=True)
 
 
-def register(app: Client) -> None:
-    app.on_message(
-        filters.command("whtml") & filters.private
-    )(whtml_cmd)
-
-    app.on_message(
-        filters.command(
-            ["testseries", "tsr", "mocktest"]
-        )
-        & filters.private
-    )(testseries_cmd)
+def register(application: Application) -> None:
+    application.add_handler(CommandHandler("html", html_command))
+    application.add_handler(CommandHandler("pdf", pdf_command))
+    application.add_handler(CallbackQueryHandler(compare_results, pattern="^compare_"))
