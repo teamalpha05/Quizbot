@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 _ANON_ADMIN_ID = 1087968824  # Telegram's fake @GroupAnonymousBot user id.
 
 # How often (every N questions) to auto-post a mid-quiz leaderboard. 0 disables it.
-MID_QUIZ_LB_INTERVAL = 10
+MID_QUIZ_LB_INTERVAL = 0
 
 # Anti-cheat pattern-detection tuning (not part of shared config -- specific
 # to this handler's group-quiz cheat check, separate from CHEAT_SPEED_THRESHOLD).
