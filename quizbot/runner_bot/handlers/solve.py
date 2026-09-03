@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 MAX_QUESTION_LENGTH = 12000
 TELEGRAM_MESSAGE_LIMIT = 4000
+MAX_IMAGE_SIZE = 19 * 1024 * 1024
 
 
 # ---------------------------------------------------------------------------
@@ -290,7 +291,21 @@ async def _gemini_vision(
             "No Gemini API key is configured for image solving."
         )
 
+    if len(image_bytes) > MAX_IMAGE_SIZE:
+        raise RuntimeError(
+            "Image is too large for inline Gemini image processing."
+        )
+
     image_b64 = base64.b64encode(image_bytes).decode("ascii")
+
+    # Current Gemini vision models.
+    # The first model is tried first. If access is unavailable,
+    # the next current model is tried automatically.
+    vision_urls = (
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+    )
 
     last_error: Optional[Exception] = None
 
@@ -300,94 +315,93 @@ async def _gemini_vision(
         if not api_key:
             continue
 
-        payload = {
-            "system_instruction": {
-                "parts": [
+        for url in vision_urls:
+
+            payload = {
+                "contents": [
                     {
-                        "text": (
-                            "You are an expert AI question solver. "
-                            "Read images accurately and solve questions "
-                            "with verified reasoning."
-                        )
+                        "role": "user",
+                        "parts": [
+                            {
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": image_b64,
+                                }
+                            },
+                            {
+                                "text": prompt,
+                            },
+                        ],
                     }
-                ]
-            },
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [
-                        {
-                            "inline_data": {
-                                "mime_type": mime_type,
-                                "data": image_b64,
-                            }
-                        },
-                        {
-                            "text": prompt,
-                        },
-                    ],
-                }
-            ],
-            "generationConfig": {
-                "maxOutputTokens": max_tokens,
-                "temperature": 0.2,
-            },
-        }
-
-        try:
-            status, data = await request_json(
-                "POST",
-                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent"
-                json_body=payload,
-                headers={
-                    "x-goog-api-key": api_key,
-                    "Content-Type": "application/json",
+                ],
+                "generationConfig": {
+                    "maxOutputTokens": max_tokens,
+                    "temperature": 0.2,
                 },
-            )
+            }
 
-            if status != 200:
-                raise RuntimeError(
-                    f"Gemini returned HTTP {status}: "
-                    f"{str(data)[:300]}"
+            try:
+                status, data = await request_json(
+                    "POST",
+                    url=url,
+                    json_body=payload,
+                    headers={
+                        "x-goog-api-key": api_key,
+                        "Content-Type": "application/json",
+                    },
                 )
 
-            candidates = data.get("candidates") or []
+                if status != 200:
+                    raise RuntimeError(
+                        f"Gemini returned HTTP {status}: "
+                        f"{str(data)[:500]}"
+                    )
 
-            if not candidates:
-                raise RuntimeError(
-                    "Gemini returned no candidates."
+                candidates = data.get("candidates") or []
+
+                if not candidates:
+                    raise RuntimeError(
+                        "Gemini returned no candidates."
+                    )
+
+                content = candidates[0].get("content") or {}
+                parts = content.get("parts") or []
+
+                result_parts: list[str] = []
+
+                for part in parts:
+                    text = part.get("text")
+
+                    if text:
+                        result_parts.append(str(text))
+
+                result = "\n".join(result_parts).strip()
+
+                if not result:
+                    raise RuntimeError(
+                        "Gemini returned an empty solution."
+                    )
+
+                logger.info(
+                    "Gemini vision solved successfully using %s",
+                    url,
                 )
 
-            content = candidates[0].get("content") or {}
-            parts = content.get("parts") or []
+                return result
 
-            result_parts: list[str] = []
+            except Exception as exc:
+                last_error = exc
 
-            for part in parts:
-                text = part.get("text")
-
-                if text:
-                    result_parts.append(str(text))
-
-            result = "\n".join(result_parts).strip()
-
-            if not result:
-                raise RuntimeError(
-                    "Gemini returned an empty solution."
+                logger.warning(
+                    "Gemini vision request failed with %s: %s",
+                    url,
+                    exc,
                 )
 
-            return result
-
-        except Exception as exc:
-            last_error = exc
-            logger.warning(
-                "Gemini vision key failed: %s",
-                exc,
-            )
-            continue
+                continue
 
     raise RuntimeError(
-        f"All Gemini vision keys failed: {last_error}"
+        f"All Gemini vision keys/models failed: {last_error}"
     )
 
 
@@ -587,19 +601,25 @@ async def solve_command(
 
                 if status_message:
                     try:
+                        if len(result) <= 4096:
+                            await status_message.edit_text(
+                                result,
+                                parse_mode=ParseMode.HTML,
+                                disable_web_page_preview=True,
+                            )
+                            return
+
                         await status_message.edit_text(
                             result[:4096],
                             parse_mode=ParseMode.HTML,
                             disable_web_page_preview=True,
                         )
 
-                        # Send remaining text if required.
-                        if len(result) > 4096:
-                            await _send_long_result(
-                                ctx,
-                                chat_id,
-                                result[4096:],
-                            )
+                        await _send_long_result(
+                            ctx,
+                            chat_id,
+                            result[4096:],
+                        )
 
                         return
 
@@ -623,7 +643,8 @@ async def solve_command(
 
                 error_text = (
                     "❌ <b>Image solve नहीं हो पाया.</b>\n\n"
-                    "Gemini API key check करें और फिर try करें."
+                    "Gemini API request failed. "
+                    "थोड़ी देर बाद फिर try करें."
                 )
 
                 if status_message:
