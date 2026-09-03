@@ -600,12 +600,13 @@ def register(
         )
     )
 
-        application.add_handler(
+    application.add_handler(
         CommandHandler(
             "sdl",
             schedule_command,
         )
-        )
+    )
+
     application.add_handler(
         CommandHandler(
             "viewschedule",
@@ -618,4 +619,4 @@ def register(
             "cancelschedule",
             cancelschedule_command,
         )
-            )
+                )
