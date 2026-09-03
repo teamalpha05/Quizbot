@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from telegram.ext import Application
 
-from . import admin, ai_quiz, mix, pdf_quiz, poll_quiz, quiz_play, reports, scheduling, setup_wizard, translation
+from . import admin, ai_quiz, mix, pdf_quiz, poll_quiz, quiz_play, reports, scheduling, setup_wizard, translation, solve
 
 _MODULES = (
     quiz_play,     # /start, /pause, /resume, /stop, /leaderboard, /slow, /fast, /normal, poll answers
@@ -21,6 +21,7 @@ _MODULES = (
     reports,       # /html, /pdf, compare_ callback
     scheduling,    # /schedule, /viewschedule, /cancelschedule
     translation,   # /trans
+    solve,         # /solve
     admin,         # /help, channel command routing (registered last so it doesn't
                    # shadow the more specific per-feature MessageHandlers above)
 )
