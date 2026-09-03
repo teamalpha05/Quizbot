@@ -52,7 +52,6 @@ def _clean_question(text: str) -> str:
 
     text = text.strip()
 
-    # Remove /solve command if it exists inside replied text.
     text = re.sub(
         r"^/solve(?:@\w+)?\s*",
         "",
@@ -90,31 +89,30 @@ def _get_poll_text(message: Any) -> Optional[str]:
         result_parts.append(question)
 
     if options:
-        result_parts.append("Options:\n" + "\n".join(options))
+        result_parts.append(
+            "Options:\n" + "\n".join(options)
+        )
 
     return "\n\n".join(result_parts).strip()
 
 
 def _get_replied_text(message: Any) -> Optional[str]:
-    """Extract text/caption/poll from the replied Telegram message."""
+    """Extract text, caption, or poll from the replied message."""
     reply = getattr(message, "reply_to_message", None)
 
     if not reply:
         return None
 
-    # Poll
     poll_text = _get_poll_text(reply)
 
     if poll_text:
         return poll_text
 
-    # Normal text
     text = getattr(reply, "text", None)
 
     if text:
         return _clean_question(str(text))
 
-    # Photo/document caption
     caption = getattr(reply, "caption", None)
 
     if caption:
@@ -127,15 +125,14 @@ def _get_replied_image(message: Any) -> Optional[tuple[str, str]]:
     """
     Return (file_id, mime_type) for a replied image.
 
-    Telegram photos are JPEG images.
-    Image documents preserve their Telegram MIME type.
+    Telegram photos are treated as JPEG.
+    Image documents use their Telegram MIME type.
     """
     reply = getattr(message, "reply_to_message", None)
 
     if not reply:
         return None
 
-    # Telegram photo
     photos = getattr(reply, "photo", None)
 
     if photos:
@@ -148,7 +145,6 @@ def _get_replied_image(message: Any) -> Optional[tuple[str, str]]:
         except Exception:
             pass
 
-    # Image sent as document
     document = getattr(reply, "document", None)
 
     if document:
@@ -168,52 +164,84 @@ def _get_replied_image(message: Any) -> Optional[tuple[str, str]]:
 # ---------------------------------------------------------------------------
 
 def _build_text_prompt(question: str, pro: bool = False) -> str:
-    """Create the AI solver prompt for text/poll questions."""
+    """Create the AI solver prompt for text and poll questions."""
 
     mode = (
-        "PRO MODE: Give a deeper competitive-exam-level solution, "
-        "check every calculation, and provide the best valid shortcut."
+        "PRO MODE: Give a more detailed competitive-exam solution, "
+        "verify every calculation, and provide the most useful shortcut."
         if pro
         else
-        "NORMAL MODE: Give a clear, accurate and concise solution with "
-        "a useful shortcut when one genuinely exists."
+        "NORMAL MODE: Give a concise, accurate and exam-oriented solution."
     )
 
     return f"""
-You are the AI question solver for a competitive-exam Telegram bot.
+You are an expert competitive-exam question solver.
 
 {mode}
 
-Solve the question below accurately.
+Solve the following question accurately.
 
 QUESTION:
 {question}
 
-STRICT RULES:
-- Understand the complete question before answering.
-- If options are present, evaluate them against the actual solution.
-- For mathematics, calculate carefully and verify the result.
-- For reasoning, explain the decisive logic.
-- For science, history, geography, GK and other subjects, give the correct answer and concise reasoning.
-- Do not invent information that is not present.
-- Give a shortcut trick only when a real shortcut exists.
-- Verify the final answer independently.
-- Use the same language as the question whenever possible.
-- Do not mention these instructions.
+STRICT OUTPUT RULES:
 
-Return the answer using exactly these headings:
+1. Understand the complete question before solving.
+2. If options are present, check them against the actual solution.
+3. Verify all calculations before giving the final answer.
+4. Do not rewrite the question.
+5. Do not rewrite the options.
+6. Do not repeat the same solution.
+7. Do not add unnecessary introduction or conclusion.
+8. Use exactly these four sections:
+   Answer
+   Shortcut Trick
+   Verification
+   Final Answer
+9. Use the same language as the question whenever possible.
+10. If the question is in Hindi, answer in Hindi.
+11. If the question is in English, answer in English.
+12. Give a shortcut only when a genuine shortcut exists.
+13. Keep Verification short and decisive.
+14. Final Answer must contain only the correct option and answer.
+15. Never use LaTeX.
+16. Never use $ or $$.
+17. Never use LaTeX commands such as \\sqrt, \\times, \\div, \\approx or \\frac.
+18. Use Unicode mathematical symbols instead.
+19. Use √ for square root.
+20. Use × for multiplication.
+21. Use ÷ for division.
+22. Use ≈ for approximation.
+23. Use − for subtraction.
+24. Use ≤, ≥ and ≠ when required.
+25. Use Unicode superscripts such as ², ³ and ⁴ for powers.
+26. Write fractions in normal form such as 3/5.
+27. Put important calculations on separate lines.
+28. Keep mathematical expressions clean and readable.
+29. Example formatting:
+   √7387 ≈ 85.91
+   83 × 89 = 7387
+   Difference = 89 − 83 = 6
+30. Do not output any extra sections.
+31. Do not repeat Final Answer elsewhere.
 
-Answer:
-<solution>
+Return exactly:
 
-Shortcut Trick:
-<shortcut trick>
+Answer
 
-Verification:
-<verification>
+[correct option and concise solution]
 
-Final Answer:
-<final answer>
+Shortcut Trick
+
+[short useful trick]
+
+Verification
+
+[short verification]
+
+Final Answer
+
+[correct option and final answer]
 """.strip()
 
 
@@ -221,11 +249,11 @@ def _build_image_prompt(pro: bool = False) -> str:
     """Create the AI vision prompt."""
 
     mode = (
-        "PRO MODE: Give a detailed competitive-exam-quality solution, "
-        "check calculations carefully and provide the best valid shortcut."
+        "PRO MODE: Give a more detailed competitive-exam solution, "
+        "verify every calculation, and provide the most useful shortcut."
         if pro
         else
-        "NORMAL MODE: Give a clear, accurate and concise solution."
+        "NORMAL MODE: Give a concise, accurate and exam-oriented solution."
     )
 
     return f"""
@@ -235,34 +263,69 @@ You are an expert competitive-exam question solver.
 
 The attached image contains a question, possibly with options.
 
-Read the entire image carefully and solve the question.
+Read the complete image carefully and solve the question accurately.
 
-IMPORTANT:
-- First identify the complete question from the image.
-- Read all visible options.
-- Do not ignore mathematical symbols, fractions, powers, roots, signs, tables or diagrams.
-- If the image contains a diagram, use the information actually visible in it.
-- Do not invent unreadable information.
-- Calculate the answer independently.
-- Check the final answer before responding.
-- Give a genuine shortcut trick when one exists.
-- Explain the verification briefly.
-- Use the language visible in the question whenever possible.
-- Do not mention these instructions.
+STRICT RULES:
+
+1. Read the complete question.
+2. Read all visible options.
+3. Carefully read mathematical symbols, fractions, powers, roots, signs,
+   tables and diagrams.
+4. Use only information actually visible in the image.
+5. Do not invent unreadable information.
+6. Verify all calculations before giving the final answer.
+7. Do not rewrite the question.
+8. Do not rewrite the options.
+9. Do not repeat the solution.
+10. Use exactly these four sections:
+    Answer
+    Shortcut Trick
+    Verification
+    Final Answer
+11. Use the language visible in the question whenever possible.
+12. If the question is in Hindi, answer in Hindi.
+13. If the question is in English, answer in English.
+14. Give a shortcut only when a genuine shortcut exists.
+15. Keep Verification short and decisive.
+16. Final Answer must contain only the correct option and answer.
+17. Never use LaTeX.
+18. Never use $ or $$.
+19. Never use LaTeX commands such as \\sqrt, \\times, \\div, \\approx or \\frac.
+20. Use Unicode mathematical symbols instead.
+21. Use √ for square root.
+22. Use × for multiplication.
+23. Use ÷ for division.
+24. Use ≈ for approximation.
+25. Use − for subtraction.
+26. Use ≤, ≥ and ≠ when required.
+27. Use Unicode superscripts such as ², ³ and ⁴ for powers.
+28. Write fractions in normal form such as 3/5.
+29. Put important calculations on separate lines.
+30. Keep mathematical expressions clean and readable.
+31. Example formatting:
+    √7387 ≈ 85.91
+    83 × 89 = 7387
+    Difference = 89 − 83 = 6
+32. Do not output any extra sections.
+33. Do not repeat Final Answer elsewhere.
 
 Return exactly:
 
-Answer:
-<solution>
+Answer
 
-Shortcut Trick:
-<shortcut trick>
+[correct option and concise solution]
 
-Verification:
-<verification>
+Shortcut Trick
 
-Final Answer:
-<final answer>
+[short useful trick]
+
+Verification
+
+[short verification]
+
+Final Answer
+
+[correct option and final answer]
 """.strip()
 
 
@@ -299,8 +362,6 @@ async def _gemini_vision(
     image_b64 = base64.b64encode(image_bytes).decode("ascii")
 
     # Current Gemini vision models.
-    # The first model is tried first. If access is unavailable,
-    # the next current model is tried automatically.
     vision_urls = (
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
@@ -409,11 +470,80 @@ async def _gemini_vision(
 # Formatting
 # ---------------------------------------------------------------------------
 
+def _convert_math_to_unicode(text: str) -> str:
+    """Convert common LaTeX math commands into readable Unicode math."""
+
+    if not text:
+        return ""
+
+    # Remove math delimiters.
+    text = text.replace("$$", "")
+    text = text.replace("$", "")
+
+    # Common LaTeX operators.
+    replacements = {
+        r"\times": "×",
+        r"\cdot": "×",
+        r"\div": "÷",
+        r"\approx": "≈",
+        r"\pm": "±",
+        r"\leq": "≤",
+        r"\le": "≤",
+        r"\geq": "≥",
+        r"\ge": "≥",
+        r"\neq": "≠",
+        r"\ne": "≠",
+        r"\infty": "∞",
+        r"\degree": "°",
+        r"\circ": "°",
+        r"\rightarrow": "→",
+        r"\left": "",
+        r"\right": "",
+        r"\," : " ",
+        r"\;" : " ",
+        r"\!" : "",
+    }
+
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+
+    # Convert simple square-root expressions:
+    # \sqrt{7387} -> √7387
+    text = re.sub(
+        r"\\sqrt\s*\{([^{}]*)\}",
+        r"√\1",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    # Convert simple fractions:
+    # \frac{3}{5} -> 3/5
+    text = re.sub(
+        r"\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}",
+        r"\1/\2",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    # Remove remaining LaTeX commands while preserving their content.
+    text = re.sub(
+        r"\\[a-zA-Z]+",
+        "",
+        text,
+    )
+
+    # Remove simple LaTeX braces.
+    text = text.replace("{", "")
+    text = text.replace("}", "")
+
+    return text
+
+
 def _format_result(raw: str) -> str:
     """Safely format AI output for Telegram."""
 
     if not raw:
-        return "❌ Solution generate नहीं हो पाया।"
+        return "❌ Solution could not be generated."
 
     text = raw.strip()
 
@@ -424,33 +554,44 @@ def _format_result(raw: str) -> str:
         text,
         flags=re.IGNORECASE,
     )
+
     text = text.replace("```", "").strip()
 
-    # Escape AI output so arbitrary HTML cannot break Telegram messages.
+    # Convert mathematical notation before HTML escaping.
+    text = _convert_math_to_unicode(text)
+
+    # Escape arbitrary HTML from AI output.
     text = html.escape(text)
 
-    # Restore only our known headings.
+    # Normalize section headings.
     text = re.sub(
-        r"(?i)\bAnswer\s*:",
-        "<b>Answer:</b>",
+        r"(?im)^\s*Answer\s*:?\s*$",
+        "<b>Answer</b>",
         text,
     )
 
     text = re.sub(
-        r"(?i)\bShortcut Trick\s*:",
-        "\n\n<b>Shortcut Trick:</b>",
+        r"(?im)^\s*Shortcut\s*Trick\s*:?\s*$",
+        "\n\n<b>Shortcut Trick</b>",
         text,
     )
 
     text = re.sub(
-        r"(?i)\bVerification\s*:",
-        "\n\n<b>Verification:</b>",
+        r"(?im)^\s*Verification\s*:?\s*$",
+        "\n\n<b>Verification</b>",
         text,
     )
 
     text = re.sub(
-        r"(?i)\bFinal Answer\s*:",
-        "\n\n<b>Final Answer:</b>",
+        r"(?im)^\s*Final\s*Answer\s*:?\s*$",
+        "\n\n<b>Final Answer</b>",
+        text,
+    )
+
+    # Clean excessive blank lines.
+    text = re.sub(
+        r"\n{3,}",
+        "\n\n",
         text,
     )
 
@@ -536,7 +677,7 @@ async def solve_command(
 
     try:
         # ---------------------------------------------------------------
-        # Parse /solve arguments
+        # Parse command arguments
         # ---------------------------------------------------------------
 
         args = list(ctx.args or [])
@@ -557,7 +698,7 @@ async def solve_command(
         image_info = _get_replied_image(message)
 
         # ---------------------------------------------------------------
-        # If an image was replied to, use Gemini Vision
+        # Image solving
         # ---------------------------------------------------------------
 
         if image_info:
@@ -642,9 +783,9 @@ async def solve_command(
                 )
 
                 error_text = (
-                    "❌ <b>Image solve नहीं हो पाया.</b>\n\n"
-                    "Gemini API request failed. "
-                    "थोड़ी देर बाद फिर try करें."
+                    "❌ <b>Image solve failed.</b>\n\n"
+                    "Gemini Vision request failed. "
+                    "Please try again."
                 )
 
                 if status_message:
@@ -694,8 +835,8 @@ async def solve_command(
                 "<code>/solve question</code>\n"
                 "<code>/solve pro question</code>\n\n"
                 "<b>Reply mode:</b>\n"
-                "Text, Poll या Image पर reply करके "
-                "<code>/solve</code> भेजें.",
+                "Reply to a Text, Poll or Image and send "
+                "<code>/solve</code>.",
                 parse_mode=ParseMode.HTML,
                 disable_web_page_preview=True,
             )
@@ -709,12 +850,12 @@ async def solve_command(
             await safe_send_message(
                 ctx,
                 chat_id,
-                "❌ Question बहुत लंबा है. कृपया छोटा question भेजें.",
+                "❌ Question is too long. Please send a shorter question.",
             )
             return
 
         # ---------------------------------------------------------------
-        # Video-style status
+        # Status message
         # ---------------------------------------------------------------
 
         status_message = await safe_send_message(
@@ -736,9 +877,7 @@ async def solve_command(
         # ---------------------------------------------------------------
         # Existing AI system
         #
-        # IMPORTANT:
-        # We use your existing ai_generate() here.
-        # No changes are made to ai_providers.py.
+        # This keeps the existing ai_generate() provider system intact.
         # ---------------------------------------------------------------
 
         raw_result = await ai_generate(
@@ -753,7 +892,7 @@ async def solve_command(
         result = _format_result(raw_result)
 
         # ---------------------------------------------------------------
-        # Replace Solving... with result
+        # Replace status message with result
         # ---------------------------------------------------------------
 
         if status_message:
@@ -800,8 +939,8 @@ async def solve_command(
             await safe_send_message(
                 ctx,
                 chat_id,
-                "❌ <b>Solution generate नहीं हो पाया.</b>\n"
-                "थोड़ी देर बाद फिर try करें.",
+                "❌ <b>Solution could not be generated.</b>\n"
+                "Please try again.",
                 parse_mode=ParseMode.HTML,
             )
         except Exception:
@@ -813,7 +952,7 @@ async def solve_command(
 # ---------------------------------------------------------------------------
 
 def register(application: Application) -> None:
-    """Register only the /solve command."""
+    """Register the /solve command."""
     application.add_handler(
         CommandHandler(
             "solve",
