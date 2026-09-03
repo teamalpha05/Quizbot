@@ -600,6 +600,12 @@ def register(
         )
     )
 
+        application.add_handler(
+        CommandHandler(
+            "sdl",
+            schedule_command,
+        )
+        )
     application.add_handler(
         CommandHandler(
             "viewschedule",
