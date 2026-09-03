@@ -337,7 +337,7 @@ async def _gemini_vision(
         try:
             status, data = await request_json(
                 "POST",
-                config.GEMINI_URL,
+                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent"
                 json_body=payload,
                 headers={
                     "x-goog-api-key": api_key,
