@@ -112,25 +112,6 @@ def _prune(times: list[float], window: int) -> None:
 
 
 def check_rate_limit(user_id: int, bucket: str = "default") -> Optional[int]:
-    """Record a hit for `user_id` in `bucket`. Returns None if allowed, or
-    the number of minutes until the window resets if the limit was hit.
-    Only returns a non-None value the *first* time the limit is crossed for
-    the current window (matches original "warn once" UX) -- subsequent
-    calls while still over the limit return -1 to signal "already warned,
-    stay silent".
-    """
-    limit, window = RATE_LIMIT_BUCKETS[bucket]
-    hits = _rl_hits.setdefault(user_id, {}).setdefault(bucket, [])
-    warned = _rl_warned.setdefault(user_id, {})
-    _prune(hits, window)
-    if len(hits) >= limit:
-        if not warned.get(bucket):
-            warned[bucket] = True
-            mins = max(1, int((window - (time.time() - hits[0])) / 60))
-            return mins
-        return -1
-    hits.append(time.time())
-    warned[bucket] = False
     return None
 
 
