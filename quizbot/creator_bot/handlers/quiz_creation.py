@@ -635,10 +635,26 @@ async def section_quiz_cb(c: Client, cb: CallbackQuery) -> None:
 
     if ud["section_wise"]:
         ud["awaiting_section_count"] = True
-        await cb.message.reply("📚 How many sections? (>1)")
+        # Remove the Section quiz? prompt after the button is pressed.
+        try:
+            await c.delete_messages(cb.message.chat.id, cb.message.id)
+        except Exception:
+            try:
+                await cb.message.delete()
+            except Exception:
+                pass
+        await c.send_message(cb.message.chat.id, "📚 How many sections? (>1)")
     else:
         ud["timer"] = 20
         ud["awaiting_promo"] = True
+        # Remove the Section quiz? prompt before showing the next step.
+        try:
+            await c.delete_messages(cb.message.chat.id, cb.message.id)
+        except Exception:
+            try:
+                await cb.message.delete()
+            except Exception:
+                pass
         await _show_promo_prompt(cb.message)
     await cb.answer()
 
@@ -652,6 +668,15 @@ async def promo_choice_cb(c: Client, cb: CallbackQuery) -> None:
     ud = state.quiz_creation[uid]
     ud["promo_message"] = None
     ud.pop("awaiting_promo", None)
+    # Remove the promo prompt message after the button is used so it does
+    # not remain above the final "Quiz Created!" message.
+    try:
+        await c.delete_messages(cb.message.chat.id, cb.message.id)
+    except Exception:
+        try:
+            await cb.message.delete()
+        except Exception:
+            pass
     await _continue_after_promo(c, uid, cb.message)
     await cb.answer()
 
@@ -669,6 +694,14 @@ async def quiz_type_cb(c: Client, cb: CallbackQuery) -> None:
     timer = ud.get("timer") or 20
     sections = ud.get("sections", [])
     promo = ud.get("promo_message")
+    # Remove the Type prompt after the button is pressed.
+    try:
+        await c.delete_messages(cb.message.chat.id, cb.message.id)
+    except Exception:
+        try:
+            await cb.message.delete()
+        except Exception:
+            pass
     await _finalize_quiz(c, cb, uid, quiz_type, promo, sections, timer, cb.from_user.first_name or "")
 
     await cb.answer()
