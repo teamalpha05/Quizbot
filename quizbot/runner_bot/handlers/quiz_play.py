@@ -14,6 +14,7 @@ import os
 import tempfile
 import time
 from typing import Any, Optional
+from io import BytesIO
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Poll, Update
 from telegram.constants import ChatType, ParseMode
@@ -38,6 +39,7 @@ from quizbot.shared.rich_quiz import (
     send_rich_or_fallback,
 )
 from quizbot.shared.utils import is_premium_user
+from quizbot.shared.utils.http import get_session, request_json
 
 from ..pdf_reports import render_quiz_pdf
 from ..quiz_utils import (
@@ -1155,60 +1157,112 @@ async def _send_pdf_report(
     ctx: ContextTypes.DEFAULT_TYPE, chat_id: int, quiz_data: dict, chat_title: str,
     leaderboard: list[dict], session_polls: Optional[dict], thread_id: Optional[int],
 ) -> None:
-    """Render and send a PDF quiz report, offloading WeasyPrint's
-    synchronous rendering to a thread-pool executor."""
+    """Generate the quiz PDF through the configured PDF API and send it.
+
+    This function intentionally keeps the existing call signature so the quiz
+    flow and /pdf toggle remain unchanged.
+    """
+    quiz_name = str(quiz_data.get("quiz_name") or "Unnamed Quiz")
+
     try:
-        orig_questions = quiz_data.get("questions", [])
-        neg_val = quiz_data.get("negative_marking", 0)
-        cm_val = quiz_data.get("correct_mark", 1)
-        sections = quiz_data.get("sections", [])
-        do_shuffle_opts = quiz_data.get("shuffle_options", False)
+        if not config.PDF_API_BASE:
+            logger.error("PDF report requested but PDF_API_BASE is not configured")
+            return
 
-        real_polls = session_polls or {}
-        sent_indices = {pdata.get("question_index") for pdata in real_polls.values()}
-        full_polls = dict(real_polls)
-        for q_idx in range(len(orig_questions)):
-            if q_idx not in sent_indices:
-                full_polls[f"__unsent_{q_idx}__"] = {"question_index": q_idx, "correct_option": [], "sent_time": 0}
+        # Convert the existing quiz question structure to the PDF API format.
+        questions_payload = []
+        for q in quiz_data.get("questions", []):
+            options = [str(o) for o in q.get("options", []) if o is not None and str(o).strip()]
+            if not options:
+                continue
 
-        bg_image_b64 = None
-        try:
-            chat_obj = await ctx.bot.get_chat(chat_id)
-            if getattr(chat_obj, "photo", None):
-                photo_file = await ctx.bot.get_file(chat_obj.photo.small_file_id)
-                photo_bytes = await photo_file.download_as_bytearray()
-                bg_image_b64 = "data:image/jpeg;base64," + base64.b64encode(bytes(photo_bytes)).decode()
-        except Exception:
-            pass
+            questions_payload.append({
+                "question": str(q.get("question", "")).strip(),
+                "options": options,
+                "correct_option_id": q.get("correct_option_id", q.get("correct_option", 0)),
+                "explanation": str(q.get("explanation") or "").strip(),
+            })
 
-        pdf_path = os.path.join(tempfile.gettempdir(), f"quiz_report_{chat_id}_{int(time.time())}.pdf")
-        quiz_name = quiz_data.get("quiz_name", "Unnamed Quiz")
+        if not questions_payload:
+            logger.error("PDF report skipped: quiz %s has no usable questions", quiz_name)
+            return
 
-        loop = asyncio.get_running_loop()
-        pdf_ok = await loop.run_in_executor(
-            None, render_quiz_pdf, quiz_name, chat_title, orig_questions, leaderboard,
-            full_polls, neg_val, cm_val, pdf_path, sections, bg_image_b64, do_shuffle_opts, "classic",
+        payload = {
+            "questions_json": questions_payload,
+            "institute_name": chat_title or "Quick Study Group",
+            "tagline": "Questions & Solutions",
+            "exam_title": quiz_name,
+            "solution_display": "inline",
+            "quiz_names": [quiz_name],
+            "async": True,
+        }
+
+        base = config.PDF_API_BASE.rstrip("/")
+        status, job = await request_json("POST", f"{base}/api/generate", json_body=payload)
+        if status != 200 or not isinstance(job, dict):
+            raise RuntimeError(f"PDF API rejected the request (HTTP {status}): {job}")
+        if job.get("error"):
+            raise RuntimeError(f"PDF API error: {job['error']}")
+
+        progress_path = job.get("progress_url")
+        download_path = job.get("download_url")
+        job_id = job.get("job_id")
+        if not progress_path or not download_path or not job_id:
+            raise RuntimeError("PDF API response is missing job/progress/download information")
+
+        def make_url(path: str) -> str:
+            return path if str(path).startswith("http://") or str(path).startswith("https://") else base + "/" + str(path).lstrip("/")
+
+        progress_url = make_url(progress_path)
+        download_url = make_url(download_path)
+
+        # The PDF API renders asynchronously. Give it up to 180 seconds.
+        deadline = time.time() + 180
+        while time.time() < deadline:
+            pstatus, pjob = await request_json("GET", progress_url)
+            if not isinstance(pjob, dict):
+                raise RuntimeError("PDF API returned an unexpected progress response")
+
+            job_status = pjob.get("status")
+            if job_status == "error":
+                raise RuntimeError(f"PDF generation failed: {pjob.get('error', 'unknown error')}")
+            if job_status == "done":
+                break
+            await asyncio.sleep(1.2)
+        else:
+            raise RuntimeError("PDF generation timed out")
+
+        session = await get_session()
+        async with session.get(download_url) as resp:
+            if resp.status != 200:
+                body = await resp.text()
+                raise RuntimeError(f"PDF download failed (HTTP {resp.status}): {body[:300]}")
+            pdf_bytes = await resp.read()
+
+        if not pdf_bytes:
+            raise RuntimeError("PDF API returned an empty PDF file")
+
+        buf = BytesIO(pdf_bytes)
+        safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", quiz_name).strip("._") or "QuizReport"
+        filename = f"{safe_name[:60]}.pdf"
+        buf.name = filename
+
+        caption = (
+            f"\U0001F4C4 <b>{quiz_name}</b>\n"
+            f"\U0001F4DA {chat_title or 'Quick Study Group'}\n\n"
+            f"<i>Quiz PDF report with questions, answers &amp; explanations</i>"
+        )
+        await ctx.bot.send_document(
+            chat_id=chat_id,
+            document=buf,
+            filename=filename,
+            caption=caption,
+            parse_mode=ParseMode.HTML,
+            **({"message_thread_id": thread_id} if thread_id else {}),
         )
 
-        if pdf_ok and os.path.exists(pdf_path):
-            try:
-                caption = (
-                    f"\U0001F4C4 <b>{quiz_name}</b>\n\U0001F4DA {chat_title}\n"
-                    f"\U0001F465 {len(leaderboard)} participant(s)\n\n"
-                    f"<i>Full quiz report with questions, answers &amp; results</i>"
-                )
-                with open(pdf_path, "rb") as pf:
-                    await ctx.bot.send_document(
-                        chat_id=chat_id, document=pf, filename=f"QuizReport_{quiz_name[:30]}.pdf",
-                        caption=caption, parse_mode=ParseMode.HTML,
-                        **({"message_thread_id": thread_id} if thread_id else {}),
-                    )
-            finally:
-                try:
-                    os.remove(pdf_path)
-                except OSError:
-                    pass
     except Exception as e:
+        # PDF failure must not interrupt or roll back the already-completed quiz.
         logger.error("PDF report error: %s", e, exc_info=True)
 
 
