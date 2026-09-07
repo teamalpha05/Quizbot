@@ -106,6 +106,76 @@ async def cancel_cmd(c: Client, m: Message) -> None:
         await m.reply("⚠️ Nothing to cancel.")
 
 
+
+def _section_quiz_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("✅ Yes", callback_data="section_quiz_yes"),
+            InlineKeyboardButton("❌ No", callback_data="section_quiz_no"),
+        ]]
+    )
+
+
+def _promo_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("⏭️ Skip", callback_data="promo_skip"),
+            InlineKeyboardButton("❌ No", callback_data="promo_no"),
+        ]]
+    )
+
+
+def _type_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("🆓 Free", callback_data="quiz_type_free"),
+            InlineKeyboardButton("💰 Paid", callback_data="quiz_type_paid"),
+        ]]
+    )
+
+
+async def _show_promo_prompt(target) -> None:
+    await target.reply(
+        "📢 Send your promo message (shown periodically). Send 'skip' or 'no' to leave empty.",
+        reply_markup=_promo_keyboard(),
+    )
+
+
+async def _show_type_prompt(target) -> None:
+    await target.reply(
+        "📊 Type (free/paid)",
+        reply_markup=_type_keyboard(),
+    )
+
+
+async def _continue_after_promo(c: Client, uid: int, target) -> None:
+    ud = state.quiz_creation[uid]
+    settings_repo = CreatorSettingsRepository(get_db())
+    settings = await settings_repo.get(uid)
+    default_text = settings.get("default_text")
+    default_text_field = settings.get("default_text_field", "both")
+    if default_text:
+        field_labels = {"question": "questions", "explanation": "explanations", "both": "questions & explanations"}
+        ud["awaiting_default_text_confirm"] = True
+        ud["_dt"] = default_text
+        ud["_dtf"] = default_text_field
+        kb = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("✅ Yes, add it", callback_data=f"dtc_yes_{uid}"),
+                    InlineKeyboardButton("⏭️ Skip", callback_data=f"dtc_no_{uid}"),
+                ]
+            ]
+        )
+        await target.reply(
+            f"💡 **Add default text to {field_labels.get(default_text_field, 'fields')}?**\n\n`{default_text[:100]}`",
+            reply_markup=kb,
+        )
+        return
+    ud["awaiting_type"] = True
+    await _show_type_prompt(target)
+
+
 @ratelimit("create")
 async def done_cmd(c: Client, m: Message) -> None:
     """/done -- finish and save the quiz being created (needs >= 10
@@ -151,7 +221,7 @@ async def done_cmd(c: Client, m: Message) -> None:
         )
         return
 
-    await m.reply("📚 Section quiz? yes/no")
+    await m.reply("📚 Section quiz?", reply_markup=_section_quiz_keyboard())
     state.quiz_creation[uid]["awaiting_section_choice"] = True
 
 
@@ -278,9 +348,9 @@ async def quicksave_cb(c: Client, cb: CallbackQuery) -> None:
 
     if action == "manual":
         try:
-            await cb.message.edit_text("📚 Section quiz? yes/no")
+            await cb.message.edit_text("📚 Section quiz?", reply_markup=_section_quiz_keyboard())
         except Exception:
-            await cb.message.reply("📚 Section quiz? yes/no")
+            await cb.message.reply("📚 Section quiz?", reply_markup=_section_quiz_keyboard())
         state.quiz_creation[uid]["awaiting_section_choice"] = True
         await cb.answer()
         return
@@ -423,7 +493,7 @@ async def handle_creation_message(c: Client, m: Message) -> None:
         else:
             ud["timer"] = 20
             ud["awaiting_promo"] = True
-            await m.reply("📢 Send your promo message (shown periodically). Send 'skip' or 'no' to leave empty.")
+            await _show_promo_prompt(m)
         return
 
     if ud.get("awaiting_section_count"):
@@ -488,7 +558,7 @@ async def handle_creation_message(c: Client, m: Message) -> None:
             await m.reply(f"📚 Section {ud['current_section']} name:")
         else:
             ud["awaiting_promo"] = True
-            await m.reply("📢 Send your promo message (shown periodically). Send 'skip' or 'no' to leave empty.")
+            await _show_promo_prompt(m)
         return
 
     if ud.get("awaiting_promo"):
@@ -496,30 +566,7 @@ async def handle_creation_message(c: Client, m: Message) -> None:
         ud["promo_message"] = None if promo_text.lower() in ("skip", "no", "none", "/skip") else promo_text
         del ud["awaiting_promo"]
 
-        settings_repo = CreatorSettingsRepository(get_db())
-        settings = await settings_repo.get(uid)
-        default_text = settings.get("default_text")
-        default_text_field = settings.get("default_text_field", "both")
-        if default_text:
-            field_labels = {"question": "questions", "explanation": "explanations", "both": "questions & explanations"}
-            ud["awaiting_default_text_confirm"] = True
-            ud["_dt"] = default_text
-            ud["_dtf"] = default_text_field
-            kb = InlineKeyboardMarkup(
-                [
-                    [
-                        InlineKeyboardButton("✅ Yes, add it", callback_data=f"dtc_yes_{uid}"),
-                        InlineKeyboardButton("⏭️ Skip", callback_data=f"dtc_no_{uid}"),
-                    ]
-                ]
-            )
-            await m.reply(
-                f"💡 **Add default text to {field_labels.get(default_text_field, 'fields')}?**\n\n`{default_text[:100]}`",
-                reply_markup=kb,
-            )
-            return
-        ud["awaiting_type"] = True
-        await m.reply("📊 Type (free/paid)")
+        await _continue_after_promo(c, uid, m)
         return
 
     if ud.get("awaiting_default_text_confirm"):
@@ -574,6 +621,59 @@ async def handle_creation_message(c: Client, m: Message) -> None:
     await m.reply(f"✅ {total} saved!{suffix}")
 
 
+
+async def section_quiz_cb(c: Client, cb: CallbackQuery) -> None:
+    """Handle inline Yes/No buttons for the section-quiz choice."""
+    uid = cb.from_user.id
+    if uid not in state.quiz_creation:
+        await cb.answer("⚠️ Session expired", show_alert=True)
+        return
+    ud = state.quiz_creation[uid]
+    choice = cb.data.rsplit("_", 1)[-1]
+    ud["section_wise"] = choice == "yes"
+    ud.pop("awaiting_section_choice", None)
+
+    if ud["section_wise"]:
+        ud["awaiting_section_count"] = True
+        await cb.message.reply("📚 How many sections? (>1)")
+    else:
+        ud["timer"] = 20
+        ud["awaiting_promo"] = True
+        await _show_promo_prompt(cb.message)
+    await cb.answer()
+
+
+async def promo_choice_cb(c: Client, cb: CallbackQuery) -> None:
+    """Handle Skip/No inline buttons for the promo-message step."""
+    uid = cb.from_user.id
+    if uid not in state.quiz_creation:
+        await cb.answer("⚠️ Session expired", show_alert=True)
+        return
+    ud = state.quiz_creation[uid]
+    ud["promo_message"] = None
+    ud.pop("awaiting_promo", None)
+    await _continue_after_promo(c, uid, cb.message)
+    await cb.answer()
+
+
+async def quiz_type_cb(c: Client, cb: CallbackQuery) -> None:
+    """Handle Free/Paid inline buttons for the quiz type step."""
+    uid = cb.from_user.id
+    if uid not in state.quiz_creation:
+        await cb.answer("⚠️ Session expired", show_alert=True)
+        return
+    ud = state.quiz_creation[uid]
+    quiz_type = cb.data.rsplit("_", 1)[-1]
+    ud.pop("awaiting_type", None)
+
+    timer = ud.get("timer") or 20
+    sections = ud.get("sections", [])
+    promo = ud.get("promo_message")
+    await _finalize_quiz(c, cb, uid, quiz_type, promo, sections, timer, cb.from_user.first_name or "")
+
+    await cb.answer()
+
+
 async def default_text_confirm_cb(c: Client, cb: CallbackQuery) -> None:
     """`dtc_yes_<uid>` / `dtc_no_<uid>` -- confirm whether to apply the
     creator's saved default text before proceeding to type selection."""
@@ -588,7 +688,7 @@ async def default_text_confirm_cb(c: Client, cb: CallbackQuery) -> None:
         ud.pop("_dt", None)
         ud.pop("_dtf", None)
     ud["awaiting_type"] = True
-    await cb.message.reply("📊 Type (free/paid)")
+    await _show_type_prompt(cb.message)
     await cb.answer()
 
 
@@ -605,6 +705,9 @@ def register(app: Client) -> None:
     app.on_message(filters.command("cancel") & filters.private)(cancel_cmd)
     app.on_callback_query(filters.regex(r"^qd_(use|manual)_\d+$"))(quicksave_cb)
     app.on_callback_query(filters.regex(r"^dtc_(yes|no)_\d+$"))(default_text_confirm_cb)
+    app.on_callback_query(filters.regex(r"^section_quiz_(yes|no)$"))(section_quiz_cb)
+    app.on_callback_query(filters.regex(r"^promo_(skip|no)$"))(promo_choice_cb)
+    app.on_callback_query(filters.regex(r"^quiz_type_(free|paid)$"))(quiz_type_cb)
     app.on_message(filters.document & filters.private & in_quiz_creation_filter())(handle_document)
     app.on_message(
         (filters.text | filters.poll)
