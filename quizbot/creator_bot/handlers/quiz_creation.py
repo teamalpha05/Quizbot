@@ -652,6 +652,12 @@ async def promo_choice_cb(c: Client, cb: CallbackQuery) -> None:
     ud = state.quiz_creation[uid]
     ud["promo_message"] = None
     ud.pop("awaiting_promo", None)
+    # Remove the promo prompt message after the button is used so it does
+    # not remain above the final "Quiz Created!" message.
+    try:
+        await cb.message.delete()
+    except Exception:
+        pass
     await _continue_after_promo(c, uid, cb.message)
     await cb.answer()
 
