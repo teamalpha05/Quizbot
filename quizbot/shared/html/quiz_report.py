@@ -681,26 +681,50 @@ def _page_shell(*, title: str, extra_head: str, body: str, extra_scripts: str) -
     line-height: 1.35;
   }}
   .question-text {{
-    font-size: 14px;
-    line-height: 1.4;
-    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 1.32;
+    margin-bottom: 6px;
     font-weight: 600;
   }}
-  .options-container {{ gap: 5px; }}
+  .question-text p,
+  .explanation-text p,
+  .question-reference p {{
+    margin: 0 0 6px;
+  }}
+  .question-text ul,
+  .question-text ol,
+  .explanation-text ul,
+  .explanation-text ol {{
+    margin: 4px 0 4px 18px;
+  }}
+  .question-text table,
+  .explanation-text table {{
+    margin: 4px 0;
+    width: 100%;
+  }}
+  .question-text th,
+  .question-text td,
+  .explanation-text th,
+  .explanation-text td {{
+    padding: 3px 5px;
+    font-size: 10.5px;
+    line-height: 1.2;
+  }}
+  .options-container {{ gap: 4px; }}
   .option-btn {{
-    min-height: 38px;
-    padding: 7px 8px;
+    min-height: 32px;
+    padding: 6px 7px;
     border-width: 1.5px;
-    border-radius: 10px;
-    font-size: 12.5px;
-    line-height: 1.3;
-    gap: 7px;
+    border-radius: 9px;
+    font-size: 11.5px;
+    line-height: 1.25;
+    gap: 6px;
   }}
   .option-indicator {{
-    min-width: 20px;
-    width: 20px;
-    height: 20px;
-    font-size: 10px;
+    min-width: 18px;
+    width: 18px;
+    height: 18px;
+    font-size: 9px;
   }}
   .option-text {{ padding-top: 1px; }}
   .explanation-box {{ padding: 8px; margin-top: 8px; }}
