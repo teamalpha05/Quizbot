@@ -46,6 +46,7 @@ async def _send_quiz_page(target, quizzes: list[dict], page: int, uid: int) -> N
             f"    ID: `{qid}`\n"
             f"    {'Paid' if q.get('quiz_type') == 'paid' else 'Free'}\n"
             f"    Plays: {q.get('total_participants', 0)}\n"
+            f"    🤖 @{(await c.get_me()).username} {qid}\n"
             f"    Edit: `/edit {qid}`\n"
             f"────────────────"
         )
