@@ -49,9 +49,6 @@ API_HASH: str | None = _env("API_HASH")
 CREATOR_BOT_TOKEN: str | None = _env("CREATOR_BOT_TOKEN")
 RUNNER_BOT_TOKEN: str | None = _env("RUNNER_BOT_TOKEN")
 
-GOOGLE_SEARCH_API_KEY: str | None = _env("GOOGLE_SEARCH_API_KEY")
-GOOGLE_SEARCH_CX: str | None = _env("GOOGLE_SEARCH_CX")
-
 # ---------------------------------------------------------------------------
 # Database (MongoDB Atlas -- a hosted database reachable over the network,
 # so data survives dyno restarts/redeploys on ephemeral hosts like Heroku.
