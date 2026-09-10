@@ -467,6 +467,155 @@ async def _gemini_vision(
 
 
 # ---------------------------------------------------------------------------
+# Gemini text / poll solver
+# ---------------------------------------------------------------------------
+
+async def _gemini_text(
+    user_id: int,
+    prompt: str,
+    max_tokens: int,
+) -> str:
+    """
+    Solve text and Telegram-poll questions with the same Gemini key pool used
+    by image solving.  This deliberately uses current Gemini endpoints instead
+    of config.GEMINI_URL, which may point to an old/retired model.
+    """
+    keys = await get_provider_keys(user_id, "gemini")
+
+    if not keys:
+        raise RuntimeError("No Gemini API key is configured for text solving.")
+
+    text_urls = (
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+    )
+
+    last_error: Optional[Exception] = None
+
+    for key_info in keys:
+        api_key = key_info.get("api_key")
+        if not api_key:
+            continue
+
+        for url in text_urls:
+            payload = {
+                "contents": [{
+                    "role": "user",
+                    "parts": [{"text": prompt}],
+                }],
+                "generationConfig": {
+                    "maxOutputTokens": max_tokens,
+                    "temperature": 0.2,
+                },
+            }
+
+            try:
+                status, data = await request_json(
+                    "POST",
+                    url=url,
+                    json_body=payload,
+                    headers={
+                        "x-goog-api-key": api_key,
+                        "Content-Type": "application/json",
+                    },
+                )
+
+                if status != 200:
+                    raise RuntimeError(
+                        f"Gemini returned HTTP {status}: {str(data)[:500]}"
+                    )
+
+                candidates = data.get("candidates") or []
+                if not candidates:
+                    raise RuntimeError("Gemini returned no candidates.")
+
+                parts = (candidates[0].get("content") or {}).get("parts") or []
+                result = "\n".join(
+                    str(part.get("text"))
+                    for part in parts
+                    if part.get("text")
+                ).strip()
+
+                if not result:
+                    raise RuntimeError("Gemini returned an empty solution.")
+
+                logger.info("Gemini text/poll solved successfully using %s", url)
+                return result
+
+            except Exception as exc:
+                last_error = exc
+                logger.warning(
+                    "Gemini text/poll request failed with %s: %s",
+                    url,
+                    exc,
+                )
+
+    raise RuntimeError(
+        f"All Gemini text/poll keys/models failed: {last_error}"
+    )
+
+
+def _build_poll_prompt(question: str, pro: bool = False) -> str:
+    """Build a poll-safe prompt with the question and all poll options."""
+    mode = (
+        "PRO MODE: Give a detailed competitive-exam solution, verify the "
+        "calculation/facts and give a useful shortcut."
+        if pro
+        else
+        "NORMAL MODE: Give a concise, accurate and exam-oriented solution."
+    )
+
+    return f"""
+You are an expert competitive-exam question solver.
+
+{mode}
+
+The following content was extracted directly from a Telegram quiz/poll.
+Treat it as the complete source question. Solve it from the question and
+options below.
+
+STRICT RULES:
+1. Read the complete question and every option.
+2. Determine the correct answer independently.
+3. Verify calculations and factual claims before answering.
+4. Do not invent missing information.
+5. Do not rewrite the question or list all options again.
+6. If the poll has one correct answer, clearly identify it.
+7. Use exactly these four sections:
+Answer
+Shortcut Trick
+Verification
+Final Answer
+8. If the question is Hindi, answer in Hindi; if English, answer in English.
+9. No LaTeX, $, $$, or LaTeX commands. Use Unicode math symbols.
+10. Final Answer must contain the correct option and answer.
+11. Do not add any other sections.
+
+POLL:
+{question}
+
+Return exactly:
+
+Answer
+
+[correct option and concise solution]
+
+Shortcut Trick
+
+[short useful trick]
+
+Verification
+
+[short verification]
+
+Final Answer
+
+[correct option and final answer]
+""".strip()
+
+
+# ---------------------------------------------------------------------------
 # Formatting
 # ---------------------------------------------------------------------------
 
@@ -861,7 +1010,7 @@ async def solve_command(
         status_message = await safe_send_message(
             ctx,
             chat_id,
-            "📤 <b>Uploading image...</b>",
+            "⏳ <b>Solving...</b>",
             parse_mode=ParseMode.HTML,
         )
 
@@ -880,14 +1029,33 @@ async def solve_command(
         # This keeps the existing ai_generate() provider system intact.
         # ---------------------------------------------------------------
 
-        raw_result = await ai_generate(
-            user_id=user_id,
-            prompt=_build_text_prompt(
-                question=question,
-                pro=pro,
-            ),
-            max_tokens=3000 if pro else 2200,
-        )
+        # Polls and normal text now use the same modern Gemini path as
+        # image solving.  If Gemini is temporarily unavailable, retain the
+        # existing provider fallback so the rest of the bot still works.
+        try:
+            if getattr(message.reply_to_message, "poll", None):
+                solve_prompt = _build_poll_prompt(question, pro=pro)
+            else:
+                solve_prompt = _build_text_prompt(question=question, pro=pro)
+
+            raw_result = await _gemini_text(
+                user_id=user_id,
+                prompt=solve_prompt,
+                max_tokens=3000 if pro else 2200,
+            )
+        except Exception as gemini_exc:
+            logger.warning(
+                "Gemini text/poll solver failed; using existing AI fallback: %s",
+                gemini_exc,
+            )
+            raw_result = await ai_generate(
+                user_id=user_id,
+                prompt=_build_text_prompt(
+                    question=question,
+                    pro=pro,
+                ),
+                max_tokens=3000 if pro else 2200,
+            )
 
         result = _format_result(raw_result)
 
