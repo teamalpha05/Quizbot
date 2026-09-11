@@ -89,6 +89,10 @@ def _get_poll_text(message: Any) -> Optional[str]:
     if not question and not options:
         return None
 
+    # Telegram's marked answer is only a reference. It can itself be wrong,
+    # so the solver must independently verify it.
+    marked_id = getattr(poll, "correct_option_id", None)
+
     result_parts: list[str] = []
 
     if question:
@@ -97,6 +101,12 @@ def _get_poll_text(message: Any) -> Optional[str]:
     if options:
         result_parts.append(
             "Options:\n" + "\n".join(options)
+        )
+
+    if isinstance(marked_id, int) and 0 <= marked_id < len(options):
+        result_parts.append(
+            "Telegram marked answer (REFERENCE ONLY — may be wrong): "
+            + options[marked_id]
         )
 
     return "\n\n".join(result_parts).strip()
@@ -182,17 +192,22 @@ async def _web_verify(question: str) -> list[dict[str, str]]:
         logger.warning("/solve web verification skipped: Google Search is not configured")
         return []
 
-    status, data = await request_json(
-        "GET",
-        "https://www.googleapis.com/customsearch/v1",
-        params={
-            "key": api_key,
-            "cx": cx,
-            "q": question[:MAX_WEB_QUERY_LENGTH],
-            "num": MAX_WEB_RESULTS,
-            "safe": "active",
-        },
-    )
+    try:
+        status, data = await request_json(
+            "GET",
+            "https://www.googleapis.com/customsearch/v1",
+            params={
+                "key": api_key,
+                "cx": cx,
+                "q": question[:MAX_WEB_QUERY_LENGTH],
+                "num": MAX_WEB_RESULTS,
+                "safe": "active",
+            },
+        )
+    except Exception as exc:
+        # Web verification must never break the existing /solve command.
+        logger.warning("/solve Google verification request failed: %s", exc)
+        return []
 
     if status != 200 or not isinstance(data, dict):
         logger.warning("/solve Google verification HTTP %s: %s", status, str(data)[:500])
