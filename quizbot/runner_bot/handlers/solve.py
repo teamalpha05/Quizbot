@@ -996,7 +996,7 @@ async def solve_command(
         status_message = await safe_send_message(
             ctx,
             chat_id,
-            "📤 <b>Uploading image...</b>",
+            "⏳ <b>Solving...</b>",
             parse_mode=ParseMode.HTML,
         )
 
@@ -1032,11 +1032,23 @@ async def solve_command(
                 pro=pro,
             )
 
-        raw_result = await ai_generate(
-            user_id=user_id,
-            prompt=solve_prompt,
-            max_tokens=3500 if pro else 2800,
-        )
+        try:
+            raw_result = await ai_generate(
+                user_id=user_id,
+                prompt=solve_prompt,
+                max_tokens=3500 if pro else 2800,
+            )
+        except Exception as verified_exc:
+            logger.warning(
+                "/solve verified prompt failed, using normal solver: %s",
+                verified_exc,
+                exc_info=True,
+            )
+            raw_result = await ai_generate(
+                user_id=user_id,
+                prompt=_build_text_prompt(question=question, pro=pro),
+                max_tokens=3000 if pro else 2200,
+            )
 
         result = _format_result(raw_result)
 
