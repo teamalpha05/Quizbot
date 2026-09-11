@@ -230,6 +230,26 @@ async def _web_verify(question: str) -> list[dict[str, str]]:
     return evidence
 
 
+def _build_search_query(question_block: str) -> str:
+    """Extract just the core question text for a Google search query.
+
+    The full question block (used inside the AI prompt) may also contain an
+    'Options:' list, a 'Telegram marked answer' line, or a 'MARKED:' line
+    (from image extraction). Those only add noise to a Google search and
+    hurt result relevance, so the query uses the question text only while
+    the AI prompt still gets the full block with options.
+    """
+    if not question_block:
+        return ""
+
+    core = question_block
+    core = re.split(r"\n\s*options\s*:", core, maxsplit=1, flags=re.IGNORECASE)[0]
+    core = re.split(r"\n\s*marked\s*:", core, maxsplit=1, flags=re.IGNORECASE)[0]
+    core = re.split(r"telegram marked answer", core, maxsplit=1, flags=re.IGNORECASE)[0]
+
+    return core.strip()
+
+
 def _build_verified_text_prompt(
     question: str,
     evidence: list[dict[str, str]],
@@ -274,22 +294,29 @@ CRITICAL VERIFICATION RULES:
    evidence is strong enough. Otherwise say that the answer could not be verified.
 7. The final answer MUST be one of the supplied options when options are present.
 8. Never manufacture an answer that is not among the supplied options.
-9. If the supplied evidence is insufficient, say so rather than guessing.
-10. Do not use the Telegram marked answer as evidence for correctness.
-11. For current/recent questions, pay close attention to the year in the question.
+9. Go through EVERY option one by one and state, for each, whether the evidence
+   supports it, contradicts it, or says nothing about it. Do not shortcut this by
+   only comparing the two options that "look" most likely.
+10. If, after checking every option, the evidence does not clearly single out one
+    option, do NOT present a confident final answer. Instead say plainly that it
+    could not be fully verified from the search results, and only then name the
+    option that is most likely with a clear "not fully confirmed" caveat.
+11. Do not use the Telegram marked answer as evidence for correctness.
+12. For current/recent questions, pay close attention to the year in the question.
     Do not use an older year's ranking/report to answer a newer-year question.
-12. For rankings/reports, verify the exact edition/year before choosing an option.
-13. If a previous-year value differs from the asked-year value, explain that clearly.
-14. Use the user's language when practical; Hindi questions should get Hindi.
-15. Use exactly these four sections:
+13. For rankings/reports, verify the exact edition/year before choosing an option.
+14. If a previous-year value differs from the asked-year value, explain that clearly.
+15. Use the user's language when practical; Hindi questions should get Hindi.
+16. Use exactly these four sections:
 Answer
 Shortcut Trick
 Verification
 Final Answer
-16. In Verification, explicitly state whether the Telegram-marked answer (if one is
-    visible in the question text) is supported, contradicted, or not determinable.
-17. Do not pretend a source says something that is only inferred.
-18. No LaTeX, no $ or $$.
+17. In Verification, go through each option's evidence status, then explicitly state
+    whether the Telegram-marked answer (if one is visible in the question text) is
+    supported, contradicted, or not determinable.
+18. Do not pretend a source says something that is only inferred.
+19. No LaTeX, no $ or $$.
 
 Return only the four requested sections.
 """.strip()
@@ -464,6 +491,95 @@ Final Answer
 """.strip()
 
 
+def _build_verified_image_prompt(
+    extracted_text: str,
+    evidence: list[dict[str, str]],
+    pro: bool = False,
+) -> str:
+    """Build an image-solver prompt that independently verifies every option
+    using web search evidence, the same way the text/poll path does.
+
+    The original image is still attached to this call so the model can
+    double-check exact wording, math, diagrams, etc. that a plain-text
+    extraction might miss — but the ANSWER must come from the evidence
+    below, not from the model's own memory or from anything marked in the
+    image.
+    """
+    source_block = []
+    for i, item in enumerate(evidence, 1):
+        source_block.append(
+            f"SOURCE {i}\n"
+            f"TITLE: {item['title']}\n"
+            f"URL: {item['link']}\n"
+            f"SNIPPET: {item['snippet']}"
+        )
+
+    mode = (
+        "Give a detailed competitive-exam solution and cross-check conflicting facts."
+        if pro else
+        "Give a concise but evidence-based competitive-exam solution."
+    )
+
+    return f"""
+You are an expert competitive-exam fact checker and question solver.
+
+{mode}
+
+The attached image contains the original question (and possibly options).
+Use the image to confirm exact wording, numbers, math, diagrams, or anything
+the text extraction below might have missed.
+
+QUESTION AND OPTIONS EXTRACTED FROM THE IMAGE (for reference only — re-check
+against the image itself if anything looks incomplete or garbled):
+{extracted_text}
+
+WEB SEARCH EVIDENCE:
+{chr(10).join(source_block)}
+
+CRITICAL VERIFICATION RULES:
+1. Anything marked/highlighted/ticked as correct in the image (a "MARKED:" line
+   above, or a visible tick/highlight) is NOT authoritative. It may be wrong.
+2. Do NOT assume any option is correct merely because it appears marked in the image.
+3. Determine the actual answer independently from the question and all options.
+4. Verify EVERY option that is factually checkable, especially names, ranks, dates,
+   years, numbers, percentages, places and official titles.
+5. Prefer primary/official sources and strong authoritative sources when the supplied
+   evidence supports them. Do not invent facts or sources.
+6. If sources conflict, explicitly identify the conflict and decide only when the
+   evidence is strong enough. Otherwise say that the answer could not be verified.
+7. The final answer MUST be one of the options visible in the image when options
+   are present. Never manufacture an option that isn't there.
+8. Go through EVERY option one by one and state, for each, whether the evidence
+   supports it, contradicts it, or says nothing about it. Do not shortcut this by
+   only comparing the two options that "look" most likely.
+9. If, after checking every option, the evidence does not clearly single out one
+   option, do NOT present a confident final answer. Instead say plainly that it
+   could not be fully verified from the search results, and only then name the
+   option that is most likely with a clear "not fully confirmed" caveat.
+10. For current/recent questions, pay close attention to the year in the question.
+    Do not use an older year's ranking/report to answer a newer-year question.
+11. For rankings/reports, verify the exact edition/year before choosing an option.
+12. If a previous-year value differs from the asked-year value, explain that clearly.
+13. Read all mathematical symbols, fractions, powers, roots, signs, tables and
+    diagrams in the image carefully, and verify all calculations before answering.
+14. Use the language visible in the question whenever possible; Hindi questions
+    should get a Hindi answer, English questions an English answer.
+15. Use exactly these four sections:
+Answer
+Shortcut Trick
+Verification
+Final Answer
+16. In Verification, go through each option's evidence status, then explicitly state
+    whether anything marked/highlighted in the image is supported, contradicted, or
+    not determinable.
+17. Do not pretend a source says something that is only inferred.
+18. Never use LaTeX or $ / $$. Use Unicode symbols instead: √ × ÷ ≈ − ≤ ≥ ≠ and
+    superscripts such as ² ³ ⁴. Write fractions in normal form such as 3/5.
+
+Return only the four requested sections.
+""".strip()
+
+
 # ---------------------------------------------------------------------------
 # Gemini Vision
 # ---------------------------------------------------------------------------
@@ -599,6 +715,48 @@ async def _gemini_vision(
     raise RuntimeError(
         f"All Gemini vision keys/models failed: {last_error}"
     )
+
+
+_IMAGE_EXTRACTION_PROMPT = """
+Read this image carefully and output ONLY the following — nothing else:
+
+Line 1 onward: the exact question text, exactly as written in the image.
+Then a line "Options:" followed by each visible option on its own line.
+If one option is visibly highlighted, ticked, circled, or otherwise marked as
+correct in the image, add one final line: "MARKED: <that option's exact text>".
+If nothing is marked, omit that line entirely.
+
+Do not solve the question. Do not explain anything. Do not add commentary.
+""".strip()
+
+
+async def _gemini_extract_text(
+    user_id: int,
+    image_bytes: bytes,
+    mime_type: str,
+) -> Optional[str]:
+    """Extract the question/options from an image as plain text.
+
+    This is a separate, lightweight call used ONLY to get clean text for an
+    independent Google search — it never generates the final answer. If it
+    fails for any reason, image solving falls back to the original
+    non-verified single-call flow rather than breaking /solve.
+    """
+    try:
+        raw = await _gemini_vision(
+            user_id=user_id,
+            image_bytes=image_bytes,
+            mime_type=mime_type,
+            prompt=_IMAGE_EXTRACTION_PROMPT,
+            max_tokens=600,
+        )
+    except Exception as exc:
+        logger.warning("/solve image text extraction failed: %s", exc)
+        return None
+
+    text = (raw or "").strip()
+
+    return text or None
 
 
 # ---------------------------------------------------------------------------
@@ -859,19 +1017,72 @@ async def solve_command(
                 if status_message:
                     try:
                         await status_message.edit_text(
+                            "🔎 <b>Verifying...</b>",
+                            parse_mode=ParseMode.HTML,
+                        )
+                    except Exception:
+                        pass
+
+                # Extract plain question/options text from the image so it can
+                # be independently checked against Google, the same way
+                # text and poll questions are. If extraction or the search
+                # fails for any reason, fall back to the original single-call
+                # image solver rather than breaking /solve.
+                extracted_text = await _gemini_extract_text(
+                    user_id=user_id,
+                    image_bytes=bytes(image_bytes),
+                    mime_type=mime_type,
+                )
+
+                image_web_evidence: list[dict[str, str]] = []
+
+                if extracted_text:
+                    image_web_evidence = await _web_verify(
+                        _build_search_query(extracted_text)
+                    )
+
+                if status_message:
+                    try:
+                        await status_message.edit_text(
                             "⏳ <b>Solving...</b>",
                             parse_mode=ParseMode.HTML,
                         )
                     except Exception:
                         pass
 
-                raw_result = await _gemini_vision(
-                    user_id=user_id,
-                    image_bytes=bytes(image_bytes),
-                    mime_type=mime_type,
-                    prompt=_build_image_prompt(pro=pro),
-                    max_tokens=3000 if pro else 2200,
-                )
+                if image_web_evidence:
+                    image_prompt = _build_verified_image_prompt(
+                        extracted_text=extracted_text,
+                        evidence=image_web_evidence,
+                        pro=pro,
+                    )
+                else:
+                    image_prompt = _build_image_prompt(pro=pro)
+
+                try:
+                    raw_result = await _gemini_vision(
+                        user_id=user_id,
+                        image_bytes=bytes(image_bytes),
+                        mime_type=mime_type,
+                        prompt=image_prompt,
+                        max_tokens=3000 if pro else 2200,
+                    )
+                except Exception as verified_image_exc:
+                    if image_web_evidence:
+                        logger.warning(
+                            "/solve verified image prompt failed, using normal image solver: %s",
+                            verified_image_exc,
+                            exc_info=True,
+                        )
+                        raw_result = await _gemini_vision(
+                            user_id=user_id,
+                            image_bytes=bytes(image_bytes),
+                            mime_type=mime_type,
+                            prompt=_build_image_prompt(pro=pro),
+                            max_tokens=3000 if pro else 2200,
+                        )
+                    else:
+                        raise
 
                 result = _format_result(raw_result)
 
@@ -1017,8 +1228,10 @@ async def solve_command(
 
         # First perform independent web verification when Google Search is configured.
         # If web verification is unavailable, retain the existing AI solver as a
-        # fallback rather than breaking /solve.
-        web_evidence = await _web_verify(question)
+        # fallback rather than breaking /solve. The search query uses only the
+        # core question text (not the options/marked-answer block) for relevance,
+        # but the AI prompt below still receives the full question+options.
+        web_evidence = await _web_verify(_build_search_query(question))
 
         if web_evidence:
             solve_prompt = _build_verified_text_prompt(
