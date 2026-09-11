@@ -40,6 +40,12 @@ MAX_QUESTION_LENGTH = 12000
 TELEGRAM_MESSAGE_LIMIT = 4000
 MAX_IMAGE_SIZE = 19 * 1024 * 1024
 
+# Web verification limits. The Telegram poll answer is treated only as a
+# claim/reference; it is never treated as the final truth.
+MAX_WEB_QUERY_LENGTH = 500
+MAX_WEB_RESULTS = 6
+MAX_WEB_SNIPPET_LENGTH = 900
+
 
 # ---------------------------------------------------------------------------
 # Text helpers
@@ -158,6 +164,120 @@ def _get_replied_image(message: Any) -> Optional[tuple[str, str]]:
 
     return None
 
+
+# ---------------------------------------------------------------------------
+# Web verification
+# ---------------------------------------------------------------------------
+
+async def _web_verify(question: str) -> list[dict[str, str]]:
+    """Search Google and return independent evidence for the question.
+
+    This is deliberately separate from the existing AI provider system.
+    The quiz's marked option is not sent as an authoritative answer.
+    """
+    api_key = getattr(config, "GOOGLE_SEARCH_API_KEY", None)
+    cx = getattr(config, "GOOGLE_SEARCH_CX", None)
+
+    if not api_key or not cx:
+        logger.warning("/solve web verification skipped: Google Search is not configured")
+        return []
+
+    status, data = await request_json(
+        "GET",
+        "https://www.googleapis.com/customsearch/v1",
+        params={
+            "key": api_key,
+            "cx": cx,
+            "q": question[:MAX_WEB_QUERY_LENGTH],
+            "num": MAX_WEB_RESULTS,
+            "safe": "active",
+        },
+    )
+
+    if status != 200 or not isinstance(data, dict):
+        logger.warning("/solve Google verification HTTP %s: %s", status, str(data)[:500])
+        return []
+
+    evidence: list[dict[str, str]] = []
+    for item in data.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title") or "").strip()
+        link = str(item.get("link") or "").strip()
+        snippet = str(item.get("snippet") or "").strip()
+        if title and link:
+            evidence.append({
+                "title": title[:300],
+                "link": link,
+                "snippet": snippet[:MAX_WEB_SNIPPET_LENGTH],
+            })
+
+    return evidence
+
+
+def _build_verified_text_prompt(
+    question: str,
+    evidence: list[dict[str, str]],
+    pro: bool = False,
+) -> str:
+    """Build a solver prompt that independently verifies every option."""
+    source_block = []
+    for i, item in enumerate(evidence, 1):
+        source_block.append(
+            f"SOURCE {i}\n"
+            f"TITLE: {item['title']}\n"
+            f"URL: {item['link']}\n"
+            f"SNIPPET: {item['snippet']}"
+        )
+
+    mode = (
+        "Give a detailed competitive-exam solution and cross-check conflicting facts."
+        if pro else
+        "Give a concise but evidence-based competitive-exam solution."
+    )
+
+    return f"""
+You are an expert competitive-exam fact checker and question solver.
+
+{mode}
+
+QUESTION AND OPTIONS:
+{question}
+
+WEB SEARCH EVIDENCE:
+{chr(10).join(source_block)}
+
+CRITICAL VERIFICATION RULES:
+1. The Telegram quiz's marked/correct option is NOT authoritative. It may be wrong.
+2. Do NOT assume any option is correct merely because it was marked in Telegram.
+3. Determine the actual answer independently from the question and all options.
+4. Verify EVERY option that is factually checkable, especially names, ranks, dates,
+   years, numbers, percentages, places and official titles.
+5. Prefer primary/official sources and strong authoritative sources when the supplied
+   evidence supports them. Do not invent facts or sources.
+6. If sources conflict, explicitly identify the conflict and decide only when the
+   evidence is strong enough. Otherwise say that the answer could not be verified.
+7. The final answer MUST be one of the supplied options when options are present.
+8. Never manufacture an answer that is not among the supplied options.
+9. If the supplied evidence is insufficient, say so rather than guessing.
+10. Do not use the Telegram marked answer as evidence for correctness.
+11. For current/recent questions, pay close attention to the year in the question.
+    Do not use an older year's ranking/report to answer a newer-year question.
+12. For rankings/reports, verify the exact edition/year before choosing an option.
+13. If a previous-year value differs from the asked-year value, explain that clearly.
+14. Use the user's language when practical; Hindi questions should get Hindi.
+15. Use exactly these four sections:
+Answer
+Shortcut Trick
+Verification
+Final Answer
+16. In Verification, explicitly state whether the Telegram-marked answer (if one is
+    visible in the question text) is supported, contradicted, or not determinable.
+17. Do not pretend a source says something that is only inferred.
+18. No LaTeX, no $ or $$.
+
+Return only the four requested sections.
+""".strip()
 
 # ---------------------------------------------------------------------------
 # AI prompts
@@ -464,155 +584,6 @@ async def _gemini_vision(
     raise RuntimeError(
         f"All Gemini vision keys/models failed: {last_error}"
     )
-
-
-# ---------------------------------------------------------------------------
-# Gemini text / poll solver
-# ---------------------------------------------------------------------------
-
-async def _gemini_text(
-    user_id: int,
-    prompt: str,
-    max_tokens: int,
-) -> str:
-    """
-    Solve text and Telegram-poll questions with the same Gemini key pool used
-    by image solving.  This deliberately uses current Gemini endpoints instead
-    of config.GEMINI_URL, which may point to an old/retired model.
-    """
-    keys = await get_provider_keys(user_id, "gemini")
-
-    if not keys:
-        raise RuntimeError("No Gemini API key is configured for text solving.")
-
-    text_urls = (
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent",
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-    )
-
-    last_error: Optional[Exception] = None
-
-    for key_info in keys:
-        api_key = key_info.get("api_key")
-        if not api_key:
-            continue
-
-        for url in text_urls:
-            payload = {
-                "contents": [{
-                    "role": "user",
-                    "parts": [{"text": prompt}],
-                }],
-                "generationConfig": {
-                    "maxOutputTokens": max_tokens,
-                    "temperature": 0.2,
-                },
-            }
-
-            try:
-                status, data = await request_json(
-                    "POST",
-                    url=url,
-                    json_body=payload,
-                    headers={
-                        "x-goog-api-key": api_key,
-                        "Content-Type": "application/json",
-                    },
-                )
-
-                if status != 200:
-                    raise RuntimeError(
-                        f"Gemini returned HTTP {status}: {str(data)[:500]}"
-                    )
-
-                candidates = data.get("candidates") or []
-                if not candidates:
-                    raise RuntimeError("Gemini returned no candidates.")
-
-                parts = (candidates[0].get("content") or {}).get("parts") or []
-                result = "\n".join(
-                    str(part.get("text"))
-                    for part in parts
-                    if part.get("text")
-                ).strip()
-
-                if not result:
-                    raise RuntimeError("Gemini returned an empty solution.")
-
-                logger.info("Gemini text/poll solved successfully using %s", url)
-                return result
-
-            except Exception as exc:
-                last_error = exc
-                logger.warning(
-                    "Gemini text/poll request failed with %s: %s",
-                    url,
-                    exc,
-                )
-
-    raise RuntimeError(
-        f"All Gemini text/poll keys/models failed: {last_error}"
-    )
-
-
-def _build_poll_prompt(question: str, pro: bool = False) -> str:
-    """Build a poll-safe prompt with the question and all poll options."""
-    mode = (
-        "PRO MODE: Give a detailed competitive-exam solution, verify the "
-        "calculation/facts and give a useful shortcut."
-        if pro
-        else
-        "NORMAL MODE: Give a concise, accurate and exam-oriented solution."
-    )
-
-    return f"""
-You are an expert competitive-exam question solver.
-
-{mode}
-
-The following content was extracted directly from a Telegram quiz/poll.
-Treat it as the complete source question. Solve it from the question and
-options below.
-
-STRICT RULES:
-1. Read the complete question and every option.
-2. Determine the correct answer independently.
-3. Verify calculations and factual claims before answering.
-4. Do not invent missing information.
-5. Do not rewrite the question or list all options again.
-6. If the poll has one correct answer, clearly identify it.
-7. Use exactly these four sections:
-Answer
-Shortcut Trick
-Verification
-Final Answer
-8. If the question is Hindi, answer in Hindi; if English, answer in English.
-9. No LaTeX, $, $$, or LaTeX commands. Use Unicode math symbols.
-10. Final Answer must contain the correct option and answer.
-11. Do not add any other sections.
-
-POLL:
-{question}
-
-Return exactly:
-
-Answer
-
-[correct option and concise solution]
-
-Shortcut Trick
-
-[short useful trick]
-
-Verification
-
-[short verification]
-
-Final Answer
-
-[correct option and final answer]
-""".strip()
 
 
 # ---------------------------------------------------------------------------
@@ -1010,7 +981,7 @@ async def solve_command(
         status_message = await safe_send_message(
             ctx,
             chat_id,
-            "⏳ <b>Solving...</b>",
+            "📤 <b>Uploading image...</b>",
             parse_mode=ParseMode.HTML,
         )
 
@@ -1029,33 +1000,28 @@ async def solve_command(
         # This keeps the existing ai_generate() provider system intact.
         # ---------------------------------------------------------------
 
-        # Polls and normal text now use the same modern Gemini path as
-        # image solving.  If Gemini is temporarily unavailable, retain the
-        # existing provider fallback so the rest of the bot still works.
-        try:
-            if getattr(message.reply_to_message, "poll", None):
-                solve_prompt = _build_poll_prompt(question, pro=pro)
-            else:
-                solve_prompt = _build_text_prompt(question=question, pro=pro)
+        # First perform independent web verification when Google Search is configured.
+        # If web verification is unavailable, retain the existing AI solver as a
+        # fallback rather than breaking /solve.
+        web_evidence = await _web_verify(question)
 
-            raw_result = await _gemini_text(
-                user_id=user_id,
-                prompt=solve_prompt,
-                max_tokens=3000 if pro else 2200,
+        if web_evidence:
+            solve_prompt = _build_verified_text_prompt(
+                question=question,
+                evidence=web_evidence,
+                pro=pro,
             )
-        except Exception as gemini_exc:
-            logger.warning(
-                "Gemini text/poll solver failed; using existing AI fallback: %s",
-                gemini_exc,
+        else:
+            solve_prompt = _build_text_prompt(
+                question=question,
+                pro=pro,
             )
-            raw_result = await ai_generate(
-                user_id=user_id,
-                prompt=_build_text_prompt(
-                    question=question,
-                    pro=pro,
-                ),
-                max_tokens=3000 if pro else 2200,
-            )
+
+        raw_result = await ai_generate(
+            user_id=user_id,
+            prompt=solve_prompt,
+            max_tokens=3500 if pro else 2800,
+        )
 
         result = _format_result(raw_result)
 
