@@ -586,13 +586,18 @@ Return only the four requested sections.
 
 async def _gemini_vision(
     user_id: int,
-    image_bytes: bytes,
-    mime_type: str,
     prompt: str,
     max_tokens: int,
+    image_bytes: Optional[bytes] = None,
+    mime_type: Optional[str] = None,
 ) -> str:
     """
-    Send an image to Gemini using the user's existing Gemini keys.
+    Send a prompt to Gemini using the user's existing Gemini keys.
+
+    If image_bytes/mime_type are provided, the image is attached
+    (vision mode). If not, this is a plain text-only Gemini call —
+    used as a fallback when the primary ai_generate() provider
+    (Pollinations) is unavailable.
 
     This function is isolated inside solve.py and does not modify
     ai_providers.py.
@@ -602,15 +607,18 @@ async def _gemini_vision(
 
     if not keys:
         raise RuntimeError(
-            "No Gemini API key is configured for image solving."
+            "No Gemini API key is configured."
         )
 
-    if len(image_bytes) > MAX_IMAGE_SIZE:
-        raise RuntimeError(
-            "Image is too large for inline Gemini image processing."
-        )
+    image_b64: Optional[str] = None
 
-    image_b64 = base64.b64encode(image_bytes).decode("ascii")
+    if image_bytes is not None:
+        if len(image_bytes) > MAX_IMAGE_SIZE:
+            raise RuntimeError(
+                "Image is too large for inline Gemini image processing."
+            )
+
+        image_b64 = base64.b64encode(image_bytes).decode("ascii")
 
     # Current Gemini vision models.
     vision_urls = (
@@ -629,21 +637,25 @@ async def _gemini_vision(
 
         for url in vision_urls:
 
+            parts: list[dict[str, Any]] = []
+
+            if image_b64 is not None:
+                parts.append(
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type or "image/jpeg",
+                            "data": image_b64,
+                        }
+                    }
+                )
+
+            parts.append({"text": prompt})
+
             payload = {
                 "contents": [
                     {
                         "role": "user",
-                        "parts": [
-                            {
-                                "inline_data": {
-                                    "mime_type": mime_type,
-                                    "data": image_b64,
-                                }
-                            },
-                            {
-                                "text": prompt,
-                            },
-                        ],
+                        "parts": parts,
                     }
                 ],
                 "generationConfig": {
@@ -695,7 +707,7 @@ async def _gemini_vision(
                     )
 
                 logger.info(
-                    "Gemini vision solved successfully using %s",
+                    "Gemini request solved successfully using %s",
                     url,
                 )
 
@@ -705,7 +717,7 @@ async def _gemini_vision(
                 last_error = exc
 
                 logger.warning(
-                    "Gemini vision request failed with %s: %s",
+                    "Gemini request failed with %s: %s",
                     url,
                     exc,
                 )
@@ -713,7 +725,25 @@ async def _gemini_vision(
                 continue
 
     raise RuntimeError(
-        f"All Gemini vision keys/models failed: {last_error}"
+        f"All Gemini keys/models failed: {last_error}"
+    )
+
+
+async def _gemini_text_generate(
+    user_id: int,
+    prompt: str,
+    max_tokens: int,
+) -> str:
+    """Generate text with Gemini, no image attached.
+
+    Used as a fallback for the text/poll /solve path when the primary
+    ai_generate() provider (Pollinations) is unavailable — e.g. returns
+    HTTP 429 (queue full) or 402 (payment required).
+    """
+    return await _gemini_vision(
+        user_id=user_id,
+        prompt=prompt,
+        max_tokens=max_tokens,
     )
 
 
@@ -1257,11 +1287,26 @@ async def solve_command(
                 verified_exc,
                 exc_info=True,
             )
-            raw_result = await ai_generate(
-                user_id=user_id,
-                prompt=_build_text_prompt(question=question, pro=pro),
-                max_tokens=3000 if pro else 2200,
-            )
+            try:
+                raw_result = await ai_generate(
+                    user_id=user_id,
+                    prompt=_build_text_prompt(question=question, pro=pro),
+                    max_tokens=3000 if pro else 2200,
+                )
+            except Exception as normal_exc:
+                # The primary provider (Pollinations) is down/rate-limited
+                # (e.g. HTTP 429/402). Fall back to Gemini text generation
+                # so /solve keeps working instead of failing outright.
+                logger.warning(
+                    "/solve normal solver also failed, falling back to Gemini text: %s",
+                    normal_exc,
+                    exc_info=True,
+                )
+                raw_result = await _gemini_text_generate(
+                    user_id=user_id,
+                    prompt=solve_prompt,
+                    max_tokens=3500 if pro else 2800,
+                )
 
         result = _format_result(raw_result)
 
