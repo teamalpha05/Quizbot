@@ -31,7 +31,55 @@ def _process_txt(content: str, remove_words: list[str], out_questions: list[dict
 
     protected = re.sub(r"<ggn>(.*?)</ggn>", _replace_ggn, content, flags=re.DOTALL)
 
-    blocks = protected.strip().split("\n\n")
+    # TXT files produced by editors/AI tools are not consistent about blank
+    # lines: some use `\\n\\n`, some use `\\r\\n\\r\\n`, and some put
+    # spaces/tabs on an otherwise blank line.  More importantly, a blank line
+    # can appear between the question text and A)/B)/C)/D) options.  The old
+    # `split("\\n\\n")` logic treated those as separate blocks, so every
+    # half-block failed validation and the upload reported `0 questions`.
+    #
+    # Build blocks from the actual MCQ structure instead: once a block already
+    # contains a checked option, the next blank line starts the next question.
+    # Blank lines before the options are therefore preserved.
+    normalized = protected.replace("\r\n", "\n").replace("\r", "\n")
+    lines = normalized.split("\n")
+    blocks: list[str] = []
+    current: list[str] = []
+
+    option_re = re.compile(r"^\s*[A-Da-d]\)\s*")
+    has_checked_option = False
+
+    for idx, line in enumerate(lines):
+        if line.strip():
+            current.append(line)
+            if option_re.match(line) and "✅" in line:
+                has_checked_option = True
+            continue
+
+        # Split only after a completed MCQ. This preserves blank lines inside
+        # multi-line questions and blank lines before the options.
+        if current and has_checked_option:
+            next_line = ""
+            for look_ahead in lines[idx + 1:]:
+                if look_ahead.strip():
+                    next_line = look_ahead.strip()
+                    break
+            if not option_re.match(next_line):
+                block = "\n".join(current).strip()
+                if block:
+                    blocks.append(block)
+                current = []
+                has_checked_option = False
+            else:
+                current.append("")
+        elif current:
+            current.append("")
+
+    if current:
+        block = "\n".join(current).strip()
+        if block:
+            blocks.append(block)
+
     processed = 0
 
     for block in blocks:
