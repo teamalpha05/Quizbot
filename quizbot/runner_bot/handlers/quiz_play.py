@@ -43,7 +43,6 @@ from quizbot.shared.utils import is_premium_user
 from quizbot.shared.utils.http import get_session, request_json
 
 from ..pdf_reports import render_quiz_pdf
-from ..duplicate_detector import DuplicateAccountDetector
 from ..quiz_utils import (
     get_section_for_question,
     is_correct,
@@ -71,15 +70,6 @@ MID_QUIZ_LB_INTERVAL = 0
 # to this handler's group-quiz cheat check, separate from CHEAT_SPEED_THRESHOLD).
 CHEAT_CHECK_EVERY = 10
 CHEAT_WRONG_RATIO = 0.5
-
-# Behaviour-based duplicate-account detector for group quizzes.
-# Telegram cannot prove that two IDs belong to one person, so matching is
-# deliberately conservative and uses multiple quiz-activity signals.
-DUPLICATE_DETECTOR = DuplicateAccountDetector(
-    min_common_answers=5,
-    min_answer_similarity=0.90,
-    max_timing_difference=2.0,
-)
 
 
 def _is_anon_admin(message) -> bool:
@@ -1677,92 +1667,14 @@ async def handle_poll_answer(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
 
             if user_id not in s["participants"]:
                 s["participants"][user_id] = {"name": user_name, "answers": {}}
-            poll_info = s["polls"].get(poll_id, {})
-            s["participants"][user_id]["answers"][poll_id] = {
-                "option": option_ids,
-                "time": now,
-                "sent_time": poll_info.get("sent_time", now),
-                "is_multi": is_multi_poll,
-            }
+            s["participants"][user_id]["answers"][poll_id] = {"option": option_ids, "time": now, "is_multi": is_multi_poll}
             await session_mgr.update(cid, s)
-
-            # Duplicate-account check is independent of the existing
-            # fast/wrong anti-cheat check. Only group quizzes are considered.
-            matched_user_id = DUPLICATE_DETECTOR.find_suspicious_pair(s, user_id)
-            if matched_user_id is not None:
-                await _handle_duplicate_accounts(
-                    ctx, cid, s, user_id, matched_user_id, user_name
-                )
-                return
 
             if s.get("anti_cheat"):
                 await _check_anti_cheat(ctx, cid, s, poll_id, user_id, user_name, option_ids, correct, now)
             return
     except Exception as e:
         logger.error("handle_poll_answer error: %s", e, exc_info=True)
-
-
-async def _handle_duplicate_accounts(
-    ctx: ContextTypes.DEFAULT_TYPE,
-    chat_id: int,
-    session: dict,
-    user_id: int,
-    matched_user_id: int,
-    user_name: str,
-) -> None:
-    """Apply the duplicate-account action once for a detected pair."""
-    pair = tuple(sorted((int(user_id), int(matched_user_id))))
-    handled = session.setdefault("duplicate_account_actions", [])
-    if list(pair) in handled:
-        return
-
-    # Never automatically ban group admins/creators. This prevents an
-    # accidental behaviour match from locking out a group administrator.
-    try:
-        for uid in pair:
-            member = await ctx.bot.get_chat_member(chat_id, uid)
-            if member.status in ("administrator", "creator"):
-                logger.warning(
-                    "Duplicate pattern ignored for admin/creator: chat=%s uid=%s pair=%s",
-                    chat_id, uid, pair,
-                )
-                handled.append(list(pair))
-                await session_mgr.update(chat_id, session)
-                return
-    except Exception:
-        # If membership cannot be checked, do not perform an automatic ban.
-        logger.exception(
-            "Could not verify member status before duplicate-account action: chat=%s pair=%s",
-            chat_id, pair,
-        )
-        return
-
-    success = True
-    for uid in pair:
-        try:
-            await ctx.bot.ban_chat_member(chat_id, uid)
-        except Exception:
-            success = False
-            logger.exception(
-                "Failed to ban suspected duplicate account: chat=%s uid=%s pair=%s",
-                chat_id, uid, pair,
-            )
-
-    if success:
-        handled.append(list(pair))
-        await session_mgr.update(chat_id, session)
-        await safe_send_message(
-            ctx,
-            chat_id,
-            "🛡️ <b>Anti-Cheat Alert</b>\n\n"
-            "Duplicate quiz activity was detected between two accounts.\n"
-            "Both accounts have been removed from the group.",
-            parse_mode=ParseMode.HTML,
-        )
-        logger.warning(
-            "Duplicate accounts removed: chat=%s users=%s and %s",
-            chat_id, pair[0], pair[1],
-        )
 
 
 async def _check_anti_cheat(
