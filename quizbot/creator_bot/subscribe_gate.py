@@ -17,7 +17,7 @@ from quizbot.shared import config
 
 logger = logging.getLogger(__name__)
 
-_JOIN_PROMPT_PHOTO = "https://graph.org/file/d44f024a08ded19452152.jpg"
+_JOIN_PROMPT_PHOTO = "https://files.catbox.moe/9gkzq7.png"
 
 
 async def subscribe_gate(app: Client, m: Message) -> bool:
