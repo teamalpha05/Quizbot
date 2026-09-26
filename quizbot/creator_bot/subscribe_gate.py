@@ -21,33 +21,74 @@ _JOIN_PROMPT_PHOTO = "https://graph.org/file/d44f024a08ded19452152.jpg"
 
 
 async def subscribe_gate(app: Client, m: Message) -> bool:
-    """Return True (and reply with a block/prompt message) if the command
-    should be BLOCKED -- i.e. the user is banned from `LOG_GROUP`, or not a
-    member of `REQUIRED_SUB_CHANNEL`. Returns False if the command may
-    proceed. Callers should `return` immediately when this returns True:
+    """Block commands until the user joins REQUIRED_SUB_CHANNEL.
 
-        if await subscribe_gate(app, m):
-            return
+    Also keeps the existing LOG_GROUP banned-user check.
+    Returns True when the command must be blocked.
     """
-    if not config.LOG_GROUP:
-        return False
-    try:
-        member = await app.get_chat_member(config.LOG_GROUP, m.from_user.id)
-        if str(member.status) == "ChatMemberStatus.BANNED":
-            await m.reply_text("\U0001F6AB Banned")
-            return True
-    except UserNotParticipant:
-        if config.REQUIRED_SUB_CHANNEL:
+    # 1. Required channel subscription check
+    if config.REQUIRED_SUB_CHANNEL:
+        channel = config.REQUIRED_SUB_CHANNEL.lstrip("@")
+
+        try:
+            member = await app.get_chat_member(channel, m.from_user.id)
+            status = str(member.status).upper()
+
+            # User is not a member / has been removed or banned.
+            if status in (
+                "CHATMEMBERSTATUS.LEFT",
+                "CHATMEMBERSTATUS.BANNED",
+            ):
+                raise UserNotParticipant
+
+        except UserNotParticipant:
             await m.reply_photo(
                 _JOIN_PROMPT_PHOTO,
-                caption="\U0001F4E2 Please join our channel to continue.",
+                caption="📢 Please join our channel to continue.",
                 reply_markup=InlineKeyboardMarkup(
-                    [[InlineKeyboardButton("\U0001F517 Join", url=f"https://t.me/{config.REQUIRED_SUB_CHANNEL}")]]
+                    [[
+                        InlineKeyboardButton(
+                            "🔗 Join Channel",
+                            url=f"https://t.me/{channel}",
+                        )
+                    ]]
                 ),
             )
             return True
-        return False
-    except Exception as exc:
-        logger.debug("subscribe_gate check failed (allowing through): %s", exc)
-        return False
+
+        except Exception as exc:
+            # Do not silently allow the command when the required
+            # subscription check itself fails.
+            logger.error(
+                "Required channel subscription check failed for %s: %s",
+                channel,
+                exc,
+            )
+            return True
+
+    # 2. Keep the existing LOG_GROUP banned-user check
+    if config.LOG_GROUP:
+        try:
+            member = await app.get_chat_member(
+                config.LOG_GROUP,
+                m.from_user.id,
+            )
+            status = str(member.status).upper()
+
+            if status == "CHATMEMBERSTATUS.BANNED":
+                await m.reply_text("🚫 Banned")
+                return True
+
+        except UserNotParticipant:
+            # Not being a member of LOG_GROUP is not itself a ban.
+            pass
+
+        except Exception as exc:
+            # Preserve the old behavior for LOG_GROUP failures:
+            # do not block a user just because this optional check failed.
+            logger.debug(
+                "LOG_GROUP check failed (allowing through): %s",
+                exc,
+            )
+
     return False
