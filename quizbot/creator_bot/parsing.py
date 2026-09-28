@@ -99,7 +99,7 @@ def _pad_table_blocks(text: str) -> str:
     return out
 
 
-_ABCD_RE = re.compile(r"^[A-Da-d]\)")
+_ABCD_RE = re.compile(r"^(?:[A-Da-d]\)|\([A-Da-d]\))")
 
 
 def parse_question_block(blk: str) -> Optional[dict]:
@@ -182,7 +182,7 @@ def parse_question_block(blk: str) -> Optional[dict]:
         if not ln.strip():
             continue
         ln = ln.strip()
-        ln = re.sub(r"^[A-Da-d]\)\s*", "", ln)
+        ln = re.sub(r"^(?:[A-Da-d]\)|\([A-Da-d]\))\s*", "", ln)
         if "✅" in ln:
             coids.append(len(opts))
             ln = ln.replace("✅", "").strip()
