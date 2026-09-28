@@ -46,7 +46,7 @@ def _process_txt(content: str, remove_words: list[str], out_questions: list[dict
     blocks: list[str] = []
     current: list[str] = []
 
-    option_re = re.compile(r"^\s*[A-Da-d]\)\s*")
+    option_re = re.compile(r"^\s*(?:[A-Da-d]\)|\([A-Da-d]\))\s*")
     has_checked_option = False
 
     for idx, line in enumerate(lines):
