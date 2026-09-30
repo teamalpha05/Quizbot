@@ -14,7 +14,7 @@ from typing import Any, Optional
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
-from telegram.ext import Application, CallbackQueryHandler, ContextTypes
+from telegram.ext import Application, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
 from quizbot.database import QuizPrefsRepository, get_db
 from quizbot.shared.utils import is_premium_user
@@ -101,7 +101,8 @@ async def _show_neg_mark_prompt(ctx: ContextTypes.DEFAULT_TYPE, chat_id: int, co
          InlineKeyboardButton("1/3", callback_data=f"qs_nm_{chat_id}_0.333"),
          InlineKeyboardButton("1/2", callback_data=f"qs_nm_{chat_id}_0.5"),
          InlineKeyboardButton("1", callback_data=f"qs_nm_{chat_id}_1.0")],
-        [InlineKeyboardButton("⏭ Skip (no negative)", callback_data=f"qs_nm_{chat_id}_skip")],
+        [InlineKeyboardButton("✏️ Custom", callback_data=f"qs_nm_{chat_id}_custom")],
+         [InlineKeyboardButton("⏭ Skip (no negative)", callback_data=f"qs_nm_{chat_id}_skip")],
     ])
     await _setup_edit(ctx, chat_id, f"➖ <b>Negative marking?</b> (applied on correct mark {correct_mark})", kb)
 
@@ -298,6 +299,17 @@ async def quiz_setup_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) ->
             await _show_neg_mark_prompt(ctx, chat_id, ps["correct_mark"])
 
         elif step == "nm":
+            if value == "custom":
+                ps["waiting_custom_neg"] = True
+                await query.edit_message_text(
+                    "✏️ <b>Custom Negative Marking</b>\n\n"
+                    "Fraction bhejiye, example:\n"
+                    "<code>1/5</code>  <code>1/6</code>  <code>1/8</code>\n"
+                    "<code>1/9</code>  <code>1/10</code>  <code>1/12</code>",
+                    parse_mode=ParseMode.HTML,
+                )
+                return
+
             ps["neg_mark"] = 0.0 if value == "skip" else round(float(value) * ps["correct_mark"], 4)
             await query.edit_message_text(f"✅ Negative mark: {ps['neg_mark']}")
             await _show_shuffle_prompt(ctx, chat_id)
@@ -359,6 +371,45 @@ async def quiz_setup_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) ->
                 await _show_section_mode_prompt(ctx, chat_id)
     except Exception as e:
         logger.error("quiz_setup_callback error: %s", e, exc_info=True)
+
+
+async def custom_negative_mark_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_chat.id
+    ps = pending_quiz_settings.get(chat_id)
+
+    if not ps or not ps.get("waiting_custom_neg"):
+        return
+
+    if update.effective_user.id != ps.get("initiator_id"):
+        return
+
+    value = update.effective_message.text.strip()
+
+    try:
+        if "/" not in value:
+            raise ValueError
+
+        numerator, denominator = value.split("/", 1)
+        numerator = int(numerator.strip())
+        denominator = int(denominator.strip())
+
+        if numerator <= 0 or denominator <= 0:
+            raise ValueError
+
+        fraction = numerator / denominator
+        ps["neg_mark"] = round(fraction * ps["correct_mark"], 4)
+        ps["waiting_custom_neg"] = False
+
+        await update.effective_message.reply_text(
+            f"✅ Negative mark: {ps['neg_mark']}"
+        )
+        await _show_shuffle_prompt(ctx, chat_id)
+
+    except (ValueError, ZeroDivisionError):
+        await update.effective_message.reply_text(
+            "❌ Invalid fraction.\n\n"
+            "Example: 1/5, 1/6, 1/8, 1/9, 1/10, 1/12"
+        )
 
 
 async def _handle_sec_callback(query, ctx: ContextTypes.DEFAULT_TYPE, chat_id: int, ps: dict, parts: list[str]) -> None:
@@ -582,3 +633,6 @@ async def _send_start_card(ctx: ContextTypes.DEFAULT_TYPE, chat_id: int, quiz: d
 
 def register(application: Application) -> None:
     application.add_handler(CallbackQueryHandler(quiz_setup_callback, pattern="^qs_"))
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, custom_negative_mark_handler)
+    )
