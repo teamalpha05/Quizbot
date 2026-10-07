@@ -67,8 +67,9 @@ _ANON_ADMIN_ID = 1087968824  # Telegram's fake @GroupAnonymousBot user id.
 MID_QUIZ_LB_INTERVAL = 0
 
 # Finished-quiz leaderboard selector: enable exactly one format.
-OLD_FINISHED_LEADERBOARD_ENABLED = False
-NEW_FINISHED_LEADERBOARD_ENABLED = True
+# NEW takes priority if both are accidentally set to True.
+OLD_FINISHED_LEADERBOARD_ENABLED = True
+NEW_FINISHED_LEADERBOARD_ENABLED = False
 
 # Anti-cheat pattern-detection tuning (not part of shared config -- specific
 # to this handler's group-quiz cheat check, separate from CHEAT_SPEED_THRESHOLD).
@@ -959,6 +960,38 @@ def _lb_rich_md(quiz_name: str, chunk: list, start_rank: int, total: int, sectio
     return "\n".join(lines)
 
 
+def _new_lb_display_name(user: dict) -> str:
+    username = str(user.get("username") or "").strip().lstrip("@")
+    if username:
+        return f"@{username}"
+    full_name = " ".join(
+        part for part in (str(user.get("first_name") or "").strip(), str(user.get("last_name") or "").strip())
+        if part
+    )
+    return full_name or str(user.get("name") or "Unknown")
+
+
+def _new_lb_score(score: float) -> str:
+    value = round(float(score), 2)
+    return str(int(value)) if value.is_integer() else f"{value:.2f}".rstrip("0").rstrip(".")
+
+
+def _new_finished_leaderboard_text(quiz_name: str, chunk: list[dict], start_rank: int, total: int) -> str:
+    lines = [
+        f"🏁 The quiz '{quiz_name}' has finished!",
+        "",
+        f"{total} questions answered",
+        "",
+    ]
+    for rank, user in enumerate(chunk, start=start_rank):
+        icon = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else f"{rank}."
+        minutes, seconds = divmod(int(user.get("total_time", 0)), 60)
+        name = _new_lb_display_name(user)
+        lines.append(f"{icon} {name} – {_new_lb_score(user.get('score', 0))} ({minutes} min {seconds} sec)")
+    lines.extend(["", "🏆 Congratulations to the winners!"])
+    return "\n".join(lines)
+
+
 async def end_quiz(update: Any, ctx: ContextTypes.DEFAULT_TYPE, quiz_id: str, protect_type: bool) -> None:
     """Compute the leaderboard for a finished/stopped group quiz, post it,
     and (if enabled for this chat) generate HTML/PDF reports."""
@@ -1046,13 +1079,8 @@ async def end_quiz(update: Any, ctx: ContextTypes.DEFAULT_TYPE, quiz_id: str, pr
                 sum(v["score"] for v in section_scores.values())
                 if section_scores else (correct * correct_mark) - (wrong * neg)
             )
-            display_name = ("@" + udata["username"]) if udata.get("username") else (
-                " ".join(x for x in (udata.get("first_name", ""), udata.get("last_name", "")) if x).strip()
-                or udata.get("name", "Unknown")
-            )
             leaderboard.append({
-                "user_id": uid, "name": udata["name"], "display_name": display_name,
-                "correct": correct, "wrong": wrong, "not_attended": max(0, total - correct - wrong),
+                "user_id": uid, "name": udata["name"], "correct": correct, "wrong": wrong,
                 "score": round(score, 4), "total_time": total_time, "answers": user_answers,
                 "section_scores": section_scores,
             })
@@ -1070,24 +1098,22 @@ async def end_quiz(update: Any, ctx: ContextTypes.DEFAULT_TYPE, quiz_id: str, pr
             except Exception:
                 pass
 
-        # If both switches are accidentally enabled, preserve legacy behavior.
-        use_new_leaderboard = NEW_FINISHED_LEADERBOARD_ENABLED and not OLD_FINISHED_LEADERBOARD_ENABLED
-        page_size = 20 if use_new_leaderboard else 100
-        for i in range(0, len(leaderboard), page_size):
-            chunk = leaderboard[i:i + page_size]
-            if i > 0:
-                await asyncio.sleep(3)
-            if use_new_leaderboard:
-                lines = [f"🏁 <b>The quiz '{quiz_name}' has finished!</b>", "", f"{total} questions answered", ""]
-                for rank, entry in enumerate(chunk, start=i + 1):
-                    medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else f"{rank}."
-                    mins, secs = divmod(int(entry["total_time"]), 60)
-                    safe_name = (str(entry["display_name"]).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
-                    lines.append(f"{medal} {safe_name} – {entry['correct']} correct, {entry['wrong']} wrong, {entry['not_attended']} not attended ({mins} min {secs} sec)")
-                if i + page_size >= len(leaderboard):
-                    lines.extend(["", "🏆 Congratulations to the winners!"])
-                await safe_send_message(ctx, chat_id, "\n".join(lines), parse_mode=ParseMode.HTML, **msg_kwargs)
-            else:
+        if NEW_FINISHED_LEADERBOARD_ENABLED:
+            # New compact format: final calculated score only (negative marking
+            # is already included in `score`), username first, full name fallback,
+            # and exactly 20 participants per message.
+            for i in range(0, len(leaderboard), 20):
+                chunk = leaderboard[i:i + 20]
+                if i > 0:
+                    await asyncio.sleep(3)
+                text = _new_finished_leaderboard_text(quiz_name, chunk, i + 1, total)
+                await safe_send_message(ctx, chat_id, text, **msg_kwargs)
+        else:
+            # Existing leaderboard remains the default/old format.
+            for i in range(0, len(leaderboard), 100):
+                chunk = leaderboard[i:i + 100]
+                if i > 0:
+                    await asyncio.sleep(3)
                 rich_md = _lb_rich_md(quiz_name, chunk, i + 1, total, sections)
                 await send_rich_or_fallback(
                     lambda method, params: send_raw_api(ctx, method, params),
@@ -1689,15 +1715,19 @@ async def handle_poll_answer(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
             is_multi_poll = isinstance(correct, list) and len(correct) > 1
 
             if user_id not in s["participants"]:
-                s["participants"][user_id] = {"name": user_name, "answers": {}}
-            # Keep Telegram identity fields alongside the legacy name field.
-            # This is session-only metadata and does not alter database schemas.
-            p_entry = s["participants"][user_id]
-            p_entry["first_name"] = pa.user.first_name or ""
-            p_entry["last_name"] = pa.user.last_name or ""
-            p_entry["username"] = pa.user.username or ""
-            p_entry["name"] = " ".join(x for x in (p_entry["first_name"], p_entry["last_name"]) if x).strip() or user_name
-            p_entry["answers"][poll_id] = {"option": option_ids, "time": now, "is_multi": is_multi_poll}
+                s["participants"][user_id] = {
+                    "name": user_name,
+                    "first_name": pa.user.first_name or "",
+                    "last_name": pa.user.last_name or "",
+                    "username": pa.user.username or "",
+                    "answers": {},
+                }
+            else:
+                # Refresh Telegram profile data without touching quiz answers.
+                s["participants"][user_id]["first_name"] = pa.user.first_name or s["participants"][user_id].get("first_name", "")
+                s["participants"][user_id]["last_name"] = pa.user.last_name or s["participants"][user_id].get("last_name", "")
+                s["participants"][user_id]["username"] = pa.user.username or s["participants"][user_id].get("username", "")
+            s["participants"][user_id]["answers"][poll_id] = {"option": option_ids, "time": now, "is_multi": is_multi_poll}
             await session_mgr.update(cid, s)
 
             if s.get("anti_cheat"):
