@@ -66,6 +66,10 @@ _ANON_ADMIN_ID = 1087968824  # Telegram's fake @GroupAnonymousBot user id.
 # How often (every N questions) to auto-post a mid-quiz leaderboard. 0 disables it.
 MID_QUIZ_LB_INTERVAL = 0
 
+# Finished-quiz leaderboard selector: enable exactly one format.
+OLD_FINISHED_LEADERBOARD_ENABLED = True
+NEW_FINISHED_LEADERBOARD_ENABLED = False
+
 # Anti-cheat pattern-detection tuning (not part of shared config -- specific
 # to this handler's group-quiz cheat check, separate from CHEAT_SPEED_THRESHOLD).
 CHEAT_CHECK_EVERY = 10
@@ -1042,8 +1046,13 @@ async def end_quiz(update: Any, ctx: ContextTypes.DEFAULT_TYPE, quiz_id: str, pr
                 sum(v["score"] for v in section_scores.values())
                 if section_scores else (correct * correct_mark) - (wrong * neg)
             )
+            display_name = ("@" + udata["username"]) if udata.get("username") else (
+                " ".join(x for x in (udata.get("first_name", ""), udata.get("last_name", "")) if x).strip()
+                or udata.get("name", "Unknown")
+            )
             leaderboard.append({
-                "user_id": uid, "name": udata["name"], "correct": correct, "wrong": wrong,
+                "user_id": uid, "name": udata["name"], "display_name": display_name,
+                "correct": correct, "wrong": wrong, "not_attended": max(0, total - correct - wrong),
                 "score": round(score, 4), "total_time": total_time, "answers": user_answers,
                 "section_scores": section_scores,
             })
@@ -1061,16 +1070,30 @@ async def end_quiz(update: Any, ctx: ContextTypes.DEFAULT_TYPE, quiz_id: str, pr
             except Exception:
                 pass
 
-        for i in range(0, len(leaderboard), 100):
-            chunk = leaderboard[i:i + 100]
+        # If both switches are accidentally enabled, preserve legacy behavior.
+        use_new_leaderboard = NEW_FINISHED_LEADERBOARD_ENABLED and not OLD_FINISHED_LEADERBOARD_ENABLED
+        page_size = 20 if use_new_leaderboard else 100
+        for i in range(0, len(leaderboard), page_size):
+            chunk = leaderboard[i:i + page_size]
             if i > 0:
                 await asyncio.sleep(3)
-            rich_md = _lb_rich_md(quiz_name, chunk, i + 1, total, sections)
-            await send_rich_or_fallback(
-                lambda method, params: send_raw_api(ctx, method, params),
-                lambda text: safe_send_message(ctx, chat_id, text, **msg_kwargs),
-                chat_id, rich_md, thread_id=end_tid,
-            )
+            if use_new_leaderboard:
+                lines = [f"🏁 <b>The quiz '{quiz_name}' has finished!</b>", "", f"{total} questions answered", ""]
+                for rank, entry in enumerate(chunk, start=i + 1):
+                    medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else f"{rank}."
+                    mins, secs = divmod(int(entry["total_time"]), 60)
+                    safe_name = (str(entry["display_name"]).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+                    lines.append(f"{medal} {safe_name} – {entry['correct']} correct, {entry['wrong']} wrong, {entry['not_attended']} not attended ({mins} min {secs} sec)")
+                if i + page_size >= len(leaderboard):
+                    lines.extend(["", "🏆 Congratulations to the winners!"])
+                await safe_send_message(ctx, chat_id, "\n".join(lines), parse_mode=ParseMode.HTML, **msg_kwargs)
+            else:
+                rich_md = _lb_rich_md(quiz_name, chunk, i + 1, total, sections)
+                await send_rich_or_fallback(
+                    lambda method, params: send_raw_api(ctx, method, params),
+                    lambda text: safe_send_message(ctx, chat_id, text, **msg_kwargs),
+                    chat_id, rich_md, thread_id=end_tid,
+                )
 
         await _record_attempt_and_report(
             ctx, chat_id, quiz_data, leaderboard, chat_title=chat_title,
@@ -1667,7 +1690,14 @@ async def handle_poll_answer(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
 
             if user_id not in s["participants"]:
                 s["participants"][user_id] = {"name": user_name, "answers": {}}
-            s["participants"][user_id]["answers"][poll_id] = {"option": option_ids, "time": now, "is_multi": is_multi_poll}
+            # Keep Telegram identity fields alongside the legacy name field.
+            # This is session-only metadata and does not alter database schemas.
+            p_entry = s["participants"][user_id]
+            p_entry["first_name"] = pa.user.first_name or ""
+            p_entry["last_name"] = pa.user.last_name or ""
+            p_entry["username"] = pa.user.username or ""
+            p_entry["name"] = " ".join(x for x in (p_entry["first_name"], p_entry["last_name"]) if x).strip() or user_name
+            p_entry["answers"][poll_id] = {"option": option_ids, "time": now, "is_multi": is_multi_poll}
             await session_mgr.update(cid, s)
 
             if s.get("anti_cheat"):
