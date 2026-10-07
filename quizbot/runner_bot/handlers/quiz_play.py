@@ -67,8 +67,8 @@ _ANON_ADMIN_ID = 1087968824  # Telegram's fake @GroupAnonymousBot user id.
 MID_QUIZ_LB_INTERVAL = 0
 
 # Finished-quiz leaderboard selector: enable exactly one format.
-OLD_FINISHED_LEADERBOARD_ENABLED = True
-NEW_FINISHED_LEADERBOARD_ENABLED = False
+OLD_FINISHED_LEADERBOARD_ENABLED = False
+NEW_FINISHED_LEADERBOARD_ENABLED = True
 
 # Anti-cheat pattern-detection tuning (not part of shared config -- specific
 # to this handler's group-quiz cheat check, separate from CHEAT_SPEED_THRESHOLD).
