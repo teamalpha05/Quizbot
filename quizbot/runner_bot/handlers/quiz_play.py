@@ -68,8 +68,8 @@ MID_QUIZ_LB_INTERVAL = 0
 
 # Finished-quiz leaderboard selector: enable exactly one format.
 # NEW takes priority if both are accidentally set to True.
-OLD_FINISHED_LEADERBOARD_ENABLED = True
-NEW_FINISHED_LEADERBOARD_ENABLED = False
+OLD_FINISHED_LEADERBOARD_ENABLED = False
+NEW_FINISHED_LEADERBOARD_ENABLED = True
 
 # Anti-cheat pattern-detection tuning (not part of shared config -- specific
 # to this handler's group-quiz cheat check, separate from CHEAT_SPEED_THRESHOLD).
