@@ -1080,8 +1080,16 @@ async def end_quiz(update: Any, ctx: ContextTypes.DEFAULT_TYPE, quiz_id: str, pr
                 if section_scores else (correct * correct_mark) - (wrong * neg)
             )
             leaderboard.append({
-                "user_id": uid, "name": udata["name"], "correct": correct, "wrong": wrong,
-                "score": round(score, 4), "total_time": total_time, "answers": user_answers,
+                "user_id": uid,
+                "name": udata.get("name", "Unknown"),
+                "first_name": udata.get("first_name", ""),
+                "last_name": udata.get("last_name", ""),
+                "username": udata.get("username", ""),
+                "correct": correct,
+                "wrong": wrong,
+                "score": round(score, 4),
+                "total_time": total_time,
+                "answers": user_answers,
                 "section_scores": section_scores,
             })
 
